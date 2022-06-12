@@ -1,5 +1,7 @@
 use std::process;
 
+use crate::scanner::TokenName;
+
 pub mod scanner;
 
 fn main() {
@@ -7,7 +9,11 @@ fn main() {
     let tokens = scanner::scanner(code_file);
 
     for token in tokens {
-        println!("Token: {}", token.lexeme);
+        if token.name == TokenName::ID {
+            println!("Token (ID): {}", token.lexeme);
+        } else {
+            println!("Token: {}", token.lexeme);
+        }
     }
 }
 

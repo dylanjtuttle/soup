@@ -1,7 +1,16 @@
 // file to test scanner
 
-// Numbers
+// Identifiers
+_ a b test identifier _return return_
+
+// String literals
+"this is a string literal\n"
+
+// Reserved words
+true false bool int void if else while break return func returns
+
+// Integer literals
 0 19289 02140260368090
 
 // Operators
-+ += - -= * *= / /= % %= < > <= >= = == != ! && ||
++ += - -= * *= / /= % %= ^ ^= < > <= >= = == != ! && ||
