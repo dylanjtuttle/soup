@@ -1,4 +1,7 @@
 // file to test scanner
 
+// Numbers
+0 19289 02140260368090
+
 // Operators
 + += - -= * *= / /= % %= < > <= >= = == != ! && ||

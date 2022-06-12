@@ -341,6 +341,29 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                 // Move along to the next char
                 i += 1;
             }
+            'A'..='Z' | 'a'..='z' | '_' => {
+                // Possible identifier, but we have to check for reserved words first
+            }
+            '0'..='9' => {
+                // Integer literal, we have to check for multiple digit literals
+                let int_lit_begin = i;
+                let mut int_lit_char = chars[i];
+
+                // Loop until we've found a 
+                while int_lit_char >= '0' && int_lit_char <= '9' {
+                    i += 1;
+                    int_lit_char = chars[i];
+                }
+
+                // Now that we've found the end of the integer literal, turn the slice into a string
+                let int_lit_lexeme: String = chars[int_lit_begin..i].iter().collect();
+
+                // Push an 'integer literal' token into the vector of tokens, with the newly created lexeme
+                tokens.push(Token {name: TokenName::INTLIT, lexeme: int_lit_lexeme});
+
+                // Move along to the next char
+                i += 1;
+            }
             _ => {
                 // If we haven't matched any tokens, throw a warning
                 throw_warning("Unrecognized token");
