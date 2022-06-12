@@ -67,286 +67,289 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
         // Let's check our cases:
 
-        if ch == ' ' || ch == '\t' || ch == '\n' {
-            // Ignore whitespace
-            i += 1;
-
-        } else if ch == '(' {
-            // Push an 'open parenthesis' token into the vector of tokens
-            tokens.push(Token {name: TokenName::OPENPAR, lexeme: String::from("(")});
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == ')' {
-            // Push a 'close parenthesis' token into the vector of tokens
-            tokens.push(Token {name: TokenName::CLOSEPAR, lexeme: String::from(")")});
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == '{' {
-            // Push an 'open brace' token into the vector of tokens
-            tokens.push(Token {name: TokenName::OPENBRACE, lexeme: String::from("{")});
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == '}' {
-            // Push an 'open parenthesis' token into the vector of tokens
-            tokens.push(Token {name: TokenName::CLOSEBRACE, lexeme: String::from("}")});
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == ';' {
-            // Push an 'open parenthesis' token into the vector of tokens
-            tokens.push(Token {name: TokenName::SEMICOLON, lexeme: String::from(";")});
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == ',' {
-            // Push an 'open parenthesis' token into the vector of tokens
-            tokens.push(Token {name: TokenName::COMMA, lexeme: String::from(",")});
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == '+' {
-            // Initialize a 'plus' token
-            let mut token = Token {name: TokenName::PLUS, lexeme: String::from("+")};
-
-            // Check to see if token is '+=', not just '+'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::PLUSEQ;
-                token.lexeme = String::from("+=");
-                
-                // Skip the next char, since it is a part of our current token
+        match ch {
+            ' ' | '\t' | '\n' => {
+                // Ignore whitespace
                 i += 1;
             }
+            '(' => {
+                // Push an 'open parenthesis' token into the vector of tokens
+                tokens.push(Token {name: TokenName::OPENPAR, lexeme: String::from("(")});
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == '-' {
-            // Initialize a 'minus' token
-            let mut token = Token {name: TokenName::MINUS, lexeme: String::from("-")};
-
-            // Check to see if token is '-=', not just '-'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::MINUSEQ;
-                token.lexeme = String::from("-=");
-                
-                // Skip the next char, since it is a part of our current token
+                // Move along to the next char
                 i += 1;
             }
+            ')' => {
+                // Push a 'close parenthesis' token into the vector of tokens
+                tokens.push(Token {name: TokenName::CLOSEPAR, lexeme: String::from(")")});
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
-
-            // Move along to the next char
-            i += 1;
-
-        } else if ch == '*' {
-            // Initialize a 'multiplication' token
-            let mut token = Token {name: TokenName::MULT, lexeme: String::from("*")};
-
-            // Check to see if token is '*=', not just '*'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::MULTEQ;
-                token.lexeme = String::from("*=");
-                
-                // Skip the next char, since it is a part of our current token
+                // Move along to the next char
                 i += 1;
             }
+            '{' => {
+                // Push an 'open brace' token into the vector of tokens
+                tokens.push(Token {name: TokenName::OPENBRACE, lexeme: String::from("{")});
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
+                // Move along to the next char
+                i += 1;
+            }
+            '}' => {
+                // Push an 'close brace' token into the vector of tokens
+                tokens.push(Token {name: TokenName::CLOSEBRACE, lexeme: String::from("}")});
 
-            // Move along to the next char
-            i += 1;
+                // Move along to the next char
+                i += 1;
+            }
+            ';' => {
+                // Push a 'semicolon' token into the vector of tokens
+                tokens.push(Token {name: TokenName::SEMICOLON, lexeme: String::from(";")});
 
-        } else if ch == '/' {
-            // Initialize a 'division' token
-            let mut token = Token {name: TokenName::DIV, lexeme: String::from("/")};
+                // Move along to the next char
+                i += 1;
+            }
+            ',' => {
+                // Push a 'comma' token into the vector of tokens
+                tokens.push(Token {name: TokenName::COMMA, lexeme: String::from(",")});
 
-            // Check to see if token is '/=', not just '/'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::DIVEQ;
-                token.lexeme = String::from("/=");
-                
-                // Skip the next char, since it is a part of our current token
-                i += 2;
+                // Move along to the next char
+                i += 1;
+            }
+            '+' => {
+                // Initialize a 'plus' token
+                let mut token = Token {name: TokenName::PLUS, lexeme: String::from("+")};
 
-                // Push the token into the vector of tokens
-                tokens.push(token);
-            } else if chars[i + 1] == '/' {
-                // We have a comment, ignore until a newline character
-                println!("Comment found!");
-
-                // Loop until we find a newline character
-                let mut comment_char = chars[i];
-                while comment_char != '\n' {
+                // Check to see if token is '+=', not just '+'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::PLUSEQ;
+                    token.lexeme = String::from("+=");
+                    
+                    // Skip the next char, since it is a part of our current token
                     i += 1;
-                    comment_char = chars[i];
                 }
 
-            } else {
-                // We just have a regular division token
                 // Push the token into the vector of tokens
                 tokens.push(token);
 
                 // Move along to the next char
                 i += 1;
             }
+            '-' => {
+                // Initialize a 'minus' token
+                let mut token = Token {name: TokenName::MINUS, lexeme: String::from("-")};
 
-        } else if ch == '%' {
-            // Initialize a 'modulus' token
-            let mut token = Token {name: TokenName::MOD, lexeme: String::from("%")};
+                // Check to see if token is '-=', not just '-'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::MINUSEQ;
+                    token.lexeme = String::from("-=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
 
-            // Check to see if token is '%=', not just '%'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::MODEQ;
-                token.lexeme = String::from("%=");
-                
-                // Skip the next char, since it is a part of our current token
+                // Push the token into the vector of tokens
+                tokens.push(token);
+
+                // Move along to the next char
                 i += 1;
             }
+            '*' => {
+                // Initialize a 'multiplication' token
+                let mut token = Token {name: TokenName::MULT, lexeme: String::from("*")};
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
+                // Check to see if token is '*=', not just '*'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::MULTEQ;
+                    token.lexeme = String::from("*=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
 
-            // Move along to the next char
-            i += 1;
+                // Push the token into the vector of tokens
+                tokens.push(token);
 
-        } else if ch == '<' {
-            // Initialize a 'less than' token
-            let mut token = Token {name: TokenName::LT, lexeme: String::from("<")};
-
-            // Check to see if token is '<=', not just '<'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::LEQ;
-                token.lexeme = String::from("<=");
-                
-                // Skip the next char, since it is a part of our current token
+                // Move along to the next char
                 i += 1;
             }
+            '/' => {
+                // Initialize a 'division' token
+                let mut token = Token {name: TokenName::DIV, lexeme: String::from("/")};
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
+                // Check to see if token is '/=', not just '/'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::DIVEQ;
+                    token.lexeme = String::from("/=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 2;
 
-            // Move along to the next char
-            i += 1;
+                    // Push the token into the vector of tokens
+                    tokens.push(token);
+                } else if chars[i + 1] == '/' {
+                    // We have a comment, ignore until a newline character
+                    println!("Comment found!");
 
-        } else if ch == '>' {
-            // Initialize a 'greater than' token
-            let mut token = Token {name: TokenName::GT, lexeme: String::from(">")};
+                    // Loop until we find a newline character
+                    let mut comment_char = chars[i];
+                    while comment_char != '\n' {
+                        i += 1;
+                        comment_char = chars[i];
+                    }
 
-            // Check to see if token is '>=', not just '>'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::GEQ;
-                token.lexeme = String::from(">=");
-                
-                // Skip the next char, since it is a part of our current token
+                } else {
+                    // We just have a regular division token
+                    // Push the token into the vector of tokens
+                    tokens.push(token);
+
+                    // Move along to the next char
+                    i += 1;
+                }
+            }
+            '%' => {
+                // Initialize a 'modulus' token
+                let mut token = Token {name: TokenName::MOD, lexeme: String::from("%")};
+
+                // Check to see if token is '%=', not just '%'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::MODEQ;
+                    token.lexeme = String::from("%=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
+
+                // Push the token into the vector of tokens
+                tokens.push(token);
+
+                // Move along to the next char
                 i += 1;
             }
+            '<' => {
+                // Initialize a 'less than' token
+                let mut token = Token {name: TokenName::LT, lexeme: String::from("<")};
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
+                // Check to see if token is '<=', not just '<'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::LEQ;
+                    token.lexeme = String::from("<=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
 
-            // Move along to the next char
-            i += 1;
+                // Push the token into the vector of tokens
+                tokens.push(token);
 
-        } else if ch == '=' {
-            // Initialize an 'assignment' token
-            let mut token = Token {name: TokenName::ASSIGN, lexeme: String::from("=")};
-
-            // Check to see if token is '==', not just '='
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::EQ;
-                token.lexeme = String::from("==");
-                
-                // Skip the next char, since it is a part of our current token
+                // Move along to the next char
                 i += 1;
             }
+            '>' => {
+                // Initialize a 'greater than' token
+                let mut token = Token {name: TokenName::GT, lexeme: String::from(">")};
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
+                // Check to see if token is '>=', not just '>'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::GEQ;
+                    token.lexeme = String::from(">=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
 
-            // Move along to the next char
-            i += 1;
+                // Push the token into the vector of tokens
+                tokens.push(token);
 
-        } else if ch == '!' {
-            // Initialize a 'not' token
-            let mut token = Token {name: TokenName::NOT, lexeme: String::from("!")};
-
-            // Check to see if token is '!=', not just '!'
-            if chars[i + 1] == '=' {
-                // Update token information
-                token.name = TokenName::NEQ;
-                token.lexeme = String::from("!=");
-                
-                // Skip the next char, since it is a part of our current token
+                // Move along to the next char
                 i += 1;
             }
+            '=' => {
+                // Initialize an 'assignment' token
+                let mut token = Token {name: TokenName::ASSIGN, lexeme: String::from("=")};
 
-            // Push the token into the vector of tokens
-            tokens.push(token);
+                // Check to see if token is '==', not just '='
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::EQ;
+                    token.lexeme = String::from("==");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
 
-            // Move along to the next char
-            i += 1;
+                // Push the token into the vector of tokens
+                tokens.push(token);
 
-        } else if ch == '&' {
-            // Check to see if token is '&&'
-            if chars[i + 1] == '&' {
-                // Push an 'and' token into the vector of tokens
-                tokens.push(Token {name: TokenName::AND, lexeme: String::from("&&")});
-
-                // Skip the next char, since it is a part of our current token
+                // Move along to the next char
                 i += 1;
-            } else {
-                // Otherwise, this is an invalid token
-                throw_warning("AAAAAAAAA Unrecognized token");
             }
+            '!' => {
+                // Initialize a 'not' token
+                let mut token = Token {name: TokenName::NOT, lexeme: String::from("!")};
 
-            // Move along to the next char
-            i += 1;
+                // Check to see if token is '!=', not just '!'
+                if chars[i + 1] == '=' {
+                    // Update token information
+                    token.name = TokenName::NEQ;
+                    token.lexeme = String::from("!=");
+                    
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                }
 
-        } else if ch == '|' {
-            // Check to see if token is '||'
-            if chars[i + 1] == '|' {
-                // Push an 'or' token into the vector of tokens
-                tokens.push(Token {name: TokenName::OR, lexeme: String::from("||")});
-                
-                // Skip the next char, since it is a part of our current token
+                // Push the token into the vector of tokens
+                tokens.push(token);
+
+                // Move along to the next char
                 i += 1;
-            } else {
-                // Otherwise, this is an invalid token
-                throw_warning("OOO Unrecognized token");
             }
+            '&' => {
+                // Check to see if token is '&&'
+                if chars[i + 1] == '&' {
+                    // Push an 'and' token into the vector of tokens
+                    tokens.push(Token {name: TokenName::AND, lexeme: String::from("&&")});
 
-            // Move along to the next char
-            i += 1;
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                } else {
+                    // Otherwise, this is an invalid token
+                    throw_warning("Unrecognized token");
+                }
 
-        } else {
-            // If we haven't matched any tokens, throw a warning
-            throw_warning("Unrecognized token");
-            i += 1;
+                // Move along to the next char
+                i += 1;
+            }
+            '|' => {
+                // Check to see if token is '||'
+                if chars[i + 1] == '|' {
+                    // Push an 'or' token into the vector of tokens
+                    tokens.push(Token {name: TokenName::OR, lexeme: String::from("||")});
+
+                    // Skip the next char, since it is a part of our current token
+                    i += 1;
+                } else {
+                    // Otherwise, this is an invalid token
+                    throw_warning("OOO Unrecognized token");
+                }
+
+                // Move along to the next char
+                i += 1;
+            }
+            _ => {
+                // If we haven't matched any tokens, throw a warning
+                throw_warning("Unrecognized token");
+                i += 1;
+            }
         }
     }
 
+    // Return vector of tokens
     tokens
 }
 
