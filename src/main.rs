@@ -1,5 +1,6 @@
 pub mod scanner;
 
 fn main() {
-    scanner::scanner();
+    let code_file = "test.txt";
+    scanner::scanner(code_file);
 }
