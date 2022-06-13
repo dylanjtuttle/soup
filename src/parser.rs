@@ -1,16 +1,17 @@
 use std::io;
 use std::io::Write;
 
-use crate::scanner::Token;
-
 pub struct ASTNode {
     node_type: String,
     attr: Option<String>,
+    line_num: Option<i32>,
     children: Vec<ASTNode>
 }
 
-pub fn parser(tokens: Vec<Token>) -> ASTNode {
-    start(tokens, 0)
+pub fn parser() -> ASTNode {
+    // add arguments:
+    // tokens: Vec<Token>, current: i32
+    start()
 }
 
 
@@ -21,9 +22,9 @@ pub fn parser(tokens: Vec<Token>) -> ASTNode {
 // start            : /* empty */
 //                  | globaldeclarations
 //                  ;
-fn start(tokens: Vec<Token>, current: i32) -> ASTNode {
+fn start() -> ASTNode {
     // Create a root 'program' node
-    ASTNode{node_type: String::from("program"), attr: None, children: Vec::new()}
+    ASTNode{node_type: String::from("program"), attr: None, line_num: None, children: Vec::new()}
 }
 
 
@@ -40,7 +41,7 @@ pub fn print_ast(node: ASTNode, num_tabs: i32) {
     }
 
     // Print node information
-    print!("{{node: {}", node.node_type);
+    print!("{{{}", node.node_type);
     io::stdout().flush().unwrap();
 
     // Only print attr if it exists
@@ -51,6 +52,18 @@ pub fn print_ast(node: ASTNode, num_tabs: i32) {
         }
         Some(attr) => {
             print!(", attr: '{}'", attr);
+            io::stdout().flush().unwrap();
+        }
+    }
+
+    // Only print line number if it exists
+    match node.line_num {
+        None => {
+            print!("");
+            io::stdout().flush().unwrap();
+        }
+        Some(line_num) => {
+            print!(", line {}", line_num);
             io::stdout().flush().unwrap();
         }
     }

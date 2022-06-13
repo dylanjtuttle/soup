@@ -23,7 +23,9 @@ fn main() {
 
     println!("\nBEGIN PARSER");
 
-    print_ast(parser::parser(tokens), 0);
+    // Add arguments:
+    // tokens: Vec<Token>
+    print_ast(parser::parser(), 0);
 }
 
 pub fn throw_warning(msg: &str) {
