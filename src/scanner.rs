@@ -7,6 +7,7 @@ use crate::throw_warning;
 pub struct Token {
     pub name: TokenName,
     pub lexeme: String,
+    pub line_num: i32,
 }
 
 #[derive(PartialEq)]  // Allow TokenNames to be checked for equality
@@ -26,6 +27,7 @@ pub enum TokenName {
     RETURN,
     FUNC,
     RETURNS,
+    MAIN,
     PLUS,
     PLUSEQ,
     MINUS,
@@ -66,7 +68,8 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
     let mut i = 0;
     while i < chars.len() {
         // Get the current character
-        let ch = chars[i];
+        let ch = chars[i].char_val;
+        let line_num = chars[i].line_num;
 
         // Let's check our cases:
 
@@ -77,52 +80,52 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '(' => {
                 // Push an 'open parenthesis' token into the vector of tokens
-                tokens.push(Token {name: TokenName::OPENPAR, lexeme: String::from("(")});
+                tokens.push(Token {name: TokenName::OPENPAR, lexeme: String::from("("), line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
             }
             ')' => {
                 // Push a 'close parenthesis' token into the vector of tokens
-                tokens.push(Token {name: TokenName::CLOSEPAR, lexeme: String::from(")")});
+                tokens.push(Token {name: TokenName::CLOSEPAR, lexeme: String::from(")"), line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
             }
             '{' => {
                 // Push an 'open brace' token into the vector of tokens
-                tokens.push(Token {name: TokenName::OPENBRACE, lexeme: String::from("{")});
+                tokens.push(Token {name: TokenName::OPENBRACE, lexeme: String::from("{"), line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
             }
             '}' => {
                 // Push an 'close brace' token into the vector of tokens
-                tokens.push(Token {name: TokenName::CLOSEBRACE, lexeme: String::from("}")});
+                tokens.push(Token {name: TokenName::CLOSEBRACE, lexeme: String::from("}"), line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
             }
             ';' => {
                 // Push a 'semicolon' token into the vector of tokens
-                tokens.push(Token {name: TokenName::SEMICOLON, lexeme: String::from(";")});
+                tokens.push(Token {name: TokenName::SEMICOLON, lexeme: String::from(";"), line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
             }
             ',' => {
                 // Push a 'comma' token into the vector of tokens
-                tokens.push(Token {name: TokenName::COMMA, lexeme: String::from(",")});
+                tokens.push(Token {name: TokenName::COMMA, lexeme: String::from(","), line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
             }
             '+' => {
                 // Initialize a 'plus' token
-                let mut token = Token {name: TokenName::PLUS, lexeme: String::from("+")};
+                let mut token = Token {name: TokenName::PLUS, lexeme: String::from("+"), line_num: line_num};
 
                 // Check to see if token is '+=', not just '+'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::PLUSEQ;
                     token.lexeme = String::from("+=");
@@ -139,10 +142,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '-' => {
                 // Initialize a 'minus' token
-                let mut token = Token {name: TokenName::MINUS, lexeme: String::from("-")};
+                let mut token = Token {name: TokenName::MINUS, lexeme: String::from("-"), line_num: line_num};
 
                 // Check to see if token is '-=', not just '-'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::MINUSEQ;
                     token.lexeme = String::from("-=");
@@ -159,10 +162,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '*' => {
                 // Initialize a 'multiplication' token
-                let mut token = Token {name: TokenName::MULT, lexeme: String::from("*")};
+                let mut token = Token {name: TokenName::MULT, lexeme: String::from("*"), line_num: line_num};
 
                 // Check to see if token is '*=', not just '*'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::MULTEQ;
                     token.lexeme = String::from("*=");
@@ -179,10 +182,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '/' => {
                 // Initialize a 'division' token
-                let mut token = Token {name: TokenName::DIV, lexeme: String::from("/")};
+                let mut token = Token {name: TokenName::DIV, lexeme: String::from("/"), line_num: line_num};
 
                 // Check to see if token is '/=', not just '/'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::DIVEQ;
                     token.lexeme = String::from("/=");
@@ -192,15 +195,15 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Push the token into the vector of tokens
                     tokens.push(token);
-                } else if chars[i + 1] == '/' {
+                } else if chars[i + 1].char_val == '/' {
                     // We have a comment, ignore until a newline character
                     println!("Comment found!");
 
                     // Loop until we find a newline character
-                    let mut comment_char = chars[i];
+                    let mut comment_char = chars[i].char_val;
                     while comment_char != '\n' {
                         i += 1;
-                        comment_char = chars[i];
+                        comment_char = chars[i].char_val;
                     }
 
                 } else {
@@ -214,10 +217,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '%' => {
                 // Initialize a 'modulus' token
-                let mut token = Token {name: TokenName::MOD, lexeme: String::from("%")};
+                let mut token = Token {name: TokenName::MOD, lexeme: String::from("%"), line_num: line_num};
 
                 // Check to see if token is '%=', not just '%'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::MODEQ;
                     token.lexeme = String::from("%=");
@@ -234,10 +237,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '^' => {
                 // Initialize a 'to the power of' token
-                let mut token = Token {name: TokenName::POWER, lexeme: String::from("^")};
+                let mut token = Token {name: TokenName::POWER, lexeme: String::from("^"), line_num: line_num};
 
                 // Check to see if token is '%=', not just '%'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::POWEREQ;
                     token.lexeme = String::from("^=");
@@ -254,10 +257,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '<' => {
                 // Initialize a 'less than' token
-                let mut token = Token {name: TokenName::LT, lexeme: String::from("<")};
+                let mut token = Token {name: TokenName::LT, lexeme: String::from("<"), line_num: line_num};
 
                 // Check to see if token is '<=', not just '<'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::LEQ;
                     token.lexeme = String::from("<=");
@@ -274,10 +277,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '>' => {
                 // Initialize a 'greater than' token
-                let mut token = Token {name: TokenName::GT, lexeme: String::from(">")};
+                let mut token = Token {name: TokenName::GT, lexeme: String::from(">"), line_num: line_num};
 
                 // Check to see if token is '>=', not just '>'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::GEQ;
                     token.lexeme = String::from(">=");
@@ -294,10 +297,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '=' => {
                 // Initialize an 'assignment' token
-                let mut token = Token {name: TokenName::ASSIGN, lexeme: String::from("=")};
+                let mut token = Token {name: TokenName::ASSIGN, lexeme: String::from("="), line_num: line_num};
 
                 // Check to see if token is '==', not just '='
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::EQ;
                     token.lexeme = String::from("==");
@@ -314,10 +317,10 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '!' => {
                 // Initialize a 'not' token
-                let mut token = Token {name: TokenName::NOT, lexeme: String::from("!")};
+                let mut token = Token {name: TokenName::NOT, lexeme: String::from("!"), line_num: line_num};
 
                 // Check to see if token is '!=', not just '!'
-                if chars[i + 1] == '=' {
+                if chars[i + 1].char_val == '=' {
                     // Update token information
                     token.name = TokenName::NEQ;
                     token.lexeme = String::from("!=");
@@ -334,9 +337,9 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '&' => {
                 // Check to see if token is '&&'
-                if chars[i + 1] == '&' {
+                if chars[i + 1].char_val == '&' {
                     // Push an 'and' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::AND, lexeme: String::from("&&")});
+                    tokens.push(Token {name: TokenName::AND, lexeme: String::from("&&"), line_num: line_num});
 
                     // Skip the next char, since it is a part of our current token
                     i += 1;
@@ -350,9 +353,9 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '|' => {
                 // Check to see if token is '||'
-                if chars[i + 1] == '|' {
+                if chars[i + 1].char_val == '|' {
                     // Push an 'or' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::OR, lexeme: String::from("||")});
+                    tokens.push(Token {name: TokenName::OR, lexeme: String::from("||"), line_num: line_num});
 
                     // Skip the next char, since it is a part of our current token
                     i += 1;
@@ -367,94 +370,159 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             'A'..='Z' | 'a'..='z' | '_' => {
                 // Possible identifier, but we have to check for reserved words first
 
-                if is_reserved(chars[i..i + 3].to_vec(), "if") {
+                if is_reserved(vec![chars[i].char_val,
+                                            chars[i + 1].char_val,
+                                            chars[i + 2].char_val], "if") {
                     // Push an 'if' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::IF, lexeme: String::from("if")});
+                    tokens.push(Token {name: TokenName::IF, lexeme: String::from("if"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 2;
-                } else if is_reserved(chars[i..i + 4].to_vec(), "int") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                   chars[i + 1].char_val,
+                                                   chars[i + 2].char_val,
+                                                   chars[i + 3].char_val], "int") {
                     // Push an 'int' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::INT, lexeme: String::from("int")});
+                    tokens.push(Token {name: TokenName::INT, lexeme: String::from("int"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(chars[i..i + 5].to_vec(), "true") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                   chars[i + 1].char_val,
+                                                   chars[i + 2].char_val,
+                                                   chars[i + 3].char_val,
+                                                   chars[i + 4].char_val], "true") {
                     // Push a 'true' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::TRUE, lexeme: String::from("true")});
+                    tokens.push(Token {name: TokenName::TRUE, lexeme: String::from("true"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(chars[i..i + 5].to_vec(), "bool") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val], "bool") {
                     // Push a 'bool' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::BOOL, lexeme: String::from("bool")});
+                    tokens.push(Token {name: TokenName::BOOL, lexeme: String::from("bool"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(chars[i..i + 5].to_vec(), "void") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val], "void") {
                     // Push a 'void' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::VOID, lexeme: String::from("void")});
+                    tokens.push(Token {name: TokenName::VOID, lexeme: String::from("void"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(chars[i..i + 5].to_vec(), "else") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val], "else") {
                     // Push a 'else' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::ELSE, lexeme: String::from("else")});
+                    tokens.push(Token {name: TokenName::ELSE, lexeme: String::from("else"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(chars[i..i + 5].to_vec(), "func") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val], "func") {
                     // Push a 'func' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::FUNC, lexeme: String::from("func")});
+                    tokens.push(Token {name: TokenName::FUNC, lexeme: String::from("func"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(chars[i..i + 6].to_vec(), "false") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val], "main") {
+                    // Push a 'func' token into the vector of tokens
+                    tokens.push(Token {name: TokenName::MAIN, lexeme: String::from("main"), line_num: line_num});
+
+                    // Skip the chars comprising the reserved word, since they're a part of our current token
+                    i += 4;
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val,
+                                                    chars[i + 5].char_val], "false") {
                     // Push a 'false' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::FALSE, lexeme: String::from("false")});
+                    tokens.push(Token {name: TokenName::FALSE, lexeme: String::from("false"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 5;
-                } else if is_reserved(chars[i..i + 6].to_vec(), "while") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val,
+                                                    chars[i + 5].char_val], "while") {
                     // Push a 'while' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::WHILE, lexeme: String::from("while")});
+                    tokens.push(Token {name: TokenName::WHILE, lexeme: String::from("while"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 5;
-                } else if is_reserved(chars[i..i + 6].to_vec(), "break") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                        chars[i + 1].char_val,
+                                        chars[i + 2].char_val,
+                                        chars[i + 3].char_val,
+                                        chars[i + 4].char_val,
+                                        chars[i + 5].char_val], "break") {
                     // Push a 'break' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::BREAK, lexeme: String::from("break")});
+                    tokens.push(Token {name: TokenName::BREAK, lexeme: String::from("break"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 5;
-                } else if is_reserved(chars[i..i + 7].to_vec(), "return") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val,
+                                                    chars[i + 5].char_val,
+                                                    chars[i + 6].char_val], "return") {
                     // Push a 'return' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::RETURN, lexeme: String::from("return")});
+                    tokens.push(Token {name: TokenName::RETURN, lexeme: String::from("return"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 6;
-                } else if is_reserved(chars[i..i + 8].to_vec(), "returns") {
+                } else if is_reserved(vec![chars[i].char_val,
+                                                    chars[i + 1].char_val,
+                                                    chars[i + 2].char_val,
+                                                    chars[i + 3].char_val,
+                                                    chars[i + 4].char_val,
+                                                    chars[i + 5].char_val,
+                                                    chars[i + 6].char_val,
+                                                    chars[i + 7].char_val], "returns") {
                     // Push a 'returns' token into the vector of tokens
-                    tokens.push(Token {name: TokenName::RETURNS, lexeme: String::from("returns")});
+                    tokens.push(Token {name: TokenName::RETURNS, lexeme: String::from("returns"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 7;
                 } else {
                     // We have an identifier
-                    let id_begin = i;
-                    let mut id_char = chars[i];
+                    let mut id_char = chars[i].char_val;
+                    let mut id_vec = Vec::new();
+                    id_vec.push(id_char);
 
                     // Loop until we've found a non-id character
                     while is_id_char(id_char) {
                         i += 1;
-                        id_char = chars[i];
+                        id_char = chars[i].char_val;
+                        id_vec.push(id_char);
                     }
 
                     // Now that we've found the end of the identifier, turn the slice into a string
-                    let id_lexeme: String = chars[id_begin..i].iter().collect();
+                    let id_lexeme: String = id_vec[0..id_vec.len() - 1].iter().collect();
 
                     // Push an 'identifier' token into the vector of tokens, with the newly created lexeme
-                    tokens.push(Token {name: TokenName::ID, lexeme: id_lexeme});
+                    tokens.push(Token {name: TokenName::ID, lexeme: id_lexeme, line_num: line_num});
                 }
 
                 // Move along to the next char
@@ -462,20 +530,22 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
             '0'..='9' => {
                 // Integer literal, we have to check for multiple digit literals
-                let int_lit_begin = i;
-                let mut int_lit_char = chars[i];
+                let mut int_lit_char = chars[i].char_val;
+                let mut int_lit_vec = Vec::new();
+                int_lit_vec.push(int_lit_char);
 
                 // Loop until we've found a non-digit character
                 while is_digit(int_lit_char) {
                     i += 1;
-                    int_lit_char = chars[i];
+                    int_lit_char = chars[i].char_val;
+                    int_lit_vec.push(int_lit_char);
                 }
 
                 // Now that we've found the end of the integer literal, turn the slice into a string
-                let int_lit_lexeme: String = chars[int_lit_begin..i].iter().collect();
+                let int_lit_lexeme: String = int_lit_vec[0..int_lit_vec.len() - 1].iter().collect();
 
                 // Push an 'integer literal' token into the vector of tokens, with the newly created lexeme
-                tokens.push(Token {name: TokenName::INTLIT, lexeme: int_lit_lexeme});
+                tokens.push(Token {name: TokenName::INTLIT, lexeme: int_lit_lexeme, line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
@@ -484,7 +554,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                 // We have a string literal
                 let mut string_vec = Vec::new();
                 i += 1;
-                let mut string_char = chars[i];
+                let mut string_char = chars[i].char_val;
 
                 // Loop until we find another quotation mark
                 while string_char != '"' {
@@ -497,14 +567,14 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     }
 
                     i += 1;
-                    string_char = chars[i];
+                    string_char = chars[i].char_val;
                 }
 
                 // Now that we've found the end of the integer literal, turn the slice into a string
                 let string_lexeme: String = string_vec.iter().collect();
 
                 // Push an 'integer literal' token into the vector of tokens, with the newly created lexeme
-                tokens.push(Token {name: TokenName::STRLIT, lexeme: string_lexeme});
+                tokens.push(Token {name: TokenName::STRLIT, lexeme: string_lexeme, line_num: line_num});
 
                 // Move along to the next char
                 i += 1;
@@ -540,23 +610,30 @@ fn is_digit(digit_char: char) -> bool {
     digit_char >= '0' && digit_char <= '9'
 }
 
+struct Char {
+    char_val: char,
+    line_num: i32,
+}
+
 // Loops through a file and returns a vector containing each of its characters
-fn get_chars(file: &str) -> Vec<char> {
+fn get_chars(file: &str) -> Vec<Char> {
     // Initialize an empty vector to hold characters
     let mut char_vec = Vec::new();
 
     if let Ok(lines) = read_lines(file) {
         // Loop through the lines of the file, storing each line as a string
+        let mut line_num = 0;
         for line in lines {
             if let Ok(line_str) = line {
+                line_num += 1;
                 // Loop through each character in the line
                 for ch in line_str.chars() {
                     // Add the character to the vector
-                    char_vec.push(ch);
+                    char_vec.push(Char{char_val: ch, line_num: line_num});
                 }
 
                 // Make sure a newline character is included in the vector at the end of each line
-                char_vec.push('\n');
+                char_vec.push(Char{char_val: '\n', line_num: line_num});
             }
         }
     }
