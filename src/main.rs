@@ -1,6 +1,7 @@
 use std::process;
 
 use crate::scanner::TokenName;
+use crate::parser::print_ast;
 
 pub mod scanner;
 pub mod parser;
@@ -12,17 +13,17 @@ fn main() {
 
     let tokens = scanner::scanner(code_file);
 
-    for token in tokens {
+    for token in &tokens {
         if token.name == TokenName::ID {
-            println!("Token (ID): {}", token.lexeme);
+            println!("{}: Token (ID): {}", token.line_num, token.lexeme);
         } else {
-            println!("Token: {}", token.lexeme);
+            println!("{}: Token: {}", token.line_num, token.lexeme);
         }
     }
 
     println!("\nBEGIN PARSER");
 
-    parser::parser();
+    print_ast(parser::parser(tokens), 0);
 }
 
 pub fn throw_warning(msg: &str) {
