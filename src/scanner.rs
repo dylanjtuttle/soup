@@ -55,7 +55,8 @@ pub enum TokenName {
     OPENBRACE,
     CLOSEBRACE,
     SEMICOLON,
-    COMMA
+    COMMA,
+    EOF
 }
 
 pub fn scanner(code_file: &str) -> Vec<Token> {
@@ -586,6 +587,9 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             }
         }
     }
+
+    // Once we've gone through the whole file, add an EOF token at the end
+    tokens.push(Token {name: TokenName::EOF, lexeme: String::from("EOF"), line_num: 0});
 
     // Return vector of tokens
     tokens
