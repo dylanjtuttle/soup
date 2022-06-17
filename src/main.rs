@@ -1,4 +1,5 @@
 use std::process;
+use std::env;
 
 use crate::scanner::TokenName;
 use crate::parser::print_ast;
@@ -7,7 +8,14 @@ pub mod scanner;
 pub mod parser;
 
 fn main() {
-    let code_file = "test_files/parser_test.txt";
+    // Get command line arguments
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        throw_error("No file given to compile, exiting now");
+    }
+
+    let code_file = &args[1];
 
     println!("\nBEGIN SCANNER");
 
