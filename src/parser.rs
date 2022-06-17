@@ -3,7 +3,7 @@ use std::io::Write;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::scanner::Token;
+use crate::{scanner::{Token, TokenName}, throw_error};
 
 
 // -----------------------------------------------------------------
@@ -29,6 +29,12 @@ impl ASTNode {
   
     pub fn add_child(&mut self, new_node: Rc<RefCell<ASTNode>>) {
       self.children.push(new_node);
+    }
+
+    pub fn add_children(&mut self, new_nodes: Vec<Rc<RefCell<ASTNode>>>) {
+        for node in new_nodes {
+            self.children.push(node);
+        }
     }
 
     pub fn print_tree(&self, node: Rc<RefCell<ASTNode>>, num_tabs: i32) {
@@ -102,19 +108,150 @@ pub fn print_ast(node: Rc<RefCell<ASTNode>>, num_tabs: i32) {
 // -----------------------------------------------------------------
 
 pub fn parser(tokens: &Vec<Token>) -> Rc<RefCell<ASTNode>> {
+    start_(tokens, &mut 0)
+}
+
+
+// -----------------------------------------------------------------
+// GRAMMAR NON-TERMINAL FUNCTIONS
+// -----------------------------------------------------------------
+
+
+// start		: {globaldeclarations}
+// 			    ;
+fn start_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Create the root program node for this code file
     let ast_root = new_node("program", None, None);
 
-    println!("First token is: {}", tokens[0].lexeme);
+    if tokens[0].name != TokenName::EOF {
+        // If this was an empty file, the first (and only) token would be EOF,
+        // in which case we would just return the program node. However, since this file
+        // is non-empty, we can parse through it and create our AST:
 
-    // Add a test child
-    let child_1 = new_node("child 1", Some(String::from("test attr")), Some(1));
-    ast_root.borrow_mut().add_child(Rc::clone(&child_1));
+        ast_root.borrow_mut().add_child(variabledeclaration_(tokens, current));
 
-    // Add another test child and a grandchild
-    let child_2 = new_node("child 2", Some(String::from("another test attr")), Some(2));
-    let grandchild = new_node("grandchild", Some(String::from("yet another test attr")), Some(3));
-    child_2.borrow_mut().add_child(Rc::clone(&grandchild));
-    ast_root.borrow_mut().add_child(Rc::clone(&child_2));
+        // ast_root.borrow_mut().add_children(globaldeclarations_(tokens, current));
+    }
 
-    return Rc::clone(&ast_root);
+    return ast_root;
+}
+
+
+// literal     : INTLIT
+//             | STRLIT
+//             | TRUE
+//             | FALSE
+//             ;
+fn literal_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // Create AST leaf node for literal
+    let literal_node = new_node("literal",
+                                                      Some(current_token.lexeme.clone()),
+                                                      Some(current_token.line_num));
+
+    // Update the literal node type to correspond to the token we see
+    match current_token.name {
+        TokenName::INTLIT => {literal_node.borrow_mut().node_type = String::from("number");}
+        TokenName::STRLIT => {literal_node.borrow_mut().node_type = String::from("string");}
+        TokenName::TRUE => {literal_node.borrow_mut().node_type = String::from("true");}
+        TokenName::FALSE => {literal_node.borrow_mut().node_type = String::from("false");}
+        _ => {
+            throw_error(&format!("Syntax Error on line {}: literal must be an integer, string, \"true\", or \"false\"",
+                        tokens[*current + 1].line_num));
+        }
+    }
+
+    // Consume this token and move on to the next one
+    consume_token(current);
+
+    // Return the literal AST node
+    return literal_node;
+}
+
+
+fn type_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // Create AST leaf node for type
+    let type_node = new_node("type",
+                                                   Some(current_token.lexeme.clone()),
+                                                   Some(current_token.line_num));
+
+    // Update the type node type to correspond to the token we see
+    match current_token.name {
+        TokenName::INT => {type_node.borrow_mut().node_type = String::from("int");}
+        TokenName::BOOL => {type_node.borrow_mut().node_type = String::from("bool");}
+        _ => {
+            throw_error(&format!("Syntax Error on line {}: type must be one of \"int\", \"bool\"",
+            tokens[*current + 1].line_num));
+        }
+    }
+
+    // Consume this token and move on to the next one
+    consume_token(current);
+
+    // Return the type AST node
+    return type_node;
+}
+
+
+// variabledeclaration     : type identifier SEMICOLON
+//                         ;
+fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    let mut current_token = &tokens[*current];
+
+    // Create variable declaration node
+    let var_decl_node = new_node("varDecl",
+                                                       None,
+                                                       Some(current_token.line_num));
+    
+    // Add child for the variable type
+    var_decl_node.borrow_mut().add_child(type_(tokens, current));
+
+    // Add child for the variable identifier
+    var_decl_node.borrow_mut().add_child(identifier_(tokens, current));
+
+    // Check to see if current token is a semicolon - if not, throw syntax error
+    current_token = &tokens[*current];
+    if current_token.name != TokenName::SEMICOLON {
+        throw_error(&format!("Syntax Error on line {}: variable declaration must end with a semicolon \";\"",
+                    current_token.line_num));
+    }
+
+    // If we made it to here, we must have successfully parsed the variable declaration,
+    // so return the newly created node!
+    return var_decl_node;
+}
+
+
+// identifier              : ID
+//                         ;
+fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    if current_token.name != TokenName::ID {
+        throw_error(&format!("Syntax Error on line {}: expected an identifier",
+                    current_token.line_num));
+    }
+
+    // Consume this token and move on to the next one
+    consume_token(current);
+
+    // Return an identifier AST node corresponding to the ID token
+    return new_node("id",
+                    Some(current_token.lexeme.clone()),
+                    Some(current_token.line_num));
+}
+
+
+// -----------------------------------------------------------------
+// MISC FUNCTIONS
+// -----------------------------------------------------------------
+
+fn consume_token(current: &mut usize) {
+    *current += 1;
 }

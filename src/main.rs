@@ -7,7 +7,7 @@ pub mod scanner;
 pub mod parser;
 
 fn main() {
-    let code_file = "test.txt";
+    let code_file = "test_files/parser_test.txt";
 
     println!("\nBEGIN SCANNER");
 
