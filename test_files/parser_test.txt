@@ -1,1 +1,5 @@
 int test_variable;
+
+func main() {}
+
+func test_func() {}

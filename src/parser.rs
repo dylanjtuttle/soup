@@ -128,9 +128,9 @@ fn start_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
         // in which case we would just return the program node. However, since this file
         // is non-empty, we can parse through it and create our AST:
 
-        ast_root.borrow_mut().add_child(variabledeclaration_(tokens, current));
+        // ast_root.borrow_mut().add_child(variabledeclaration_(tokens, current));
 
-        // ast_root.borrow_mut().add_children(globaldeclarations_(tokens, current));
+        ast_root.borrow_mut().add_children(globaldeclarations_(tokens, current));
     }
 
     return ast_root;
@@ -198,9 +198,65 @@ fn type_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 }
 
 
+// globaldeclarations		: [globaldeclaration]+
+// 						    ;
+fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+    // Get current token
+    let mut current_token = &tokens[*current];
+
+    // Initialize a vector to hold all of the global declaration nodes so we can return them
+    let mut children_vec = Vec::new();
+
+    // Loop until we reach the end of the file
+    while current_token.name != TokenName::EOF {
+        children_vec.push(globaldeclaration_(tokens, current));
+        current_token = &tokens[*current];
+    }
+
+    return children_vec;
+}
+
+
+// globaldeclaration       : variabledeclaration
+//                         | functiondeclaration
+//                         | mainfunctiondeclaration
+//                         ;
+fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // We have to find out what kind of global declaration this is, or throw an error if our token doesn't match
+    if current_token.name == TokenName::FUNC {
+        // We have a function declaration, so we just need to find out if it's a main function or just a regular one
+        if tokens[*current + 1].name == TokenName::MAIN {
+            // We have a main function
+            return mainfunctiondeclaration_(tokens, current);
+        } else if tokens[*current + 1].name == TokenName::ID {
+            // We have a regular function
+            return functiondeclaration_(tokens, current);
+        } else {
+            throw_error(&format!("Syntax Error on line {}: \"func\" keyword must be followed by \"main\" or identifier",
+                        tokens[*current + 1].line_num));
+        }
+
+    } else if current_token.name == TokenName::INT || current_token.name == TokenName::BOOL {
+        // We have a variable declaration
+        return variabledeclaration_(tokens, current);
+
+    } else {
+        throw_error(&format!("Syntax Error on line {}: global declaration must take the form of a function or variable declaration",
+                    tokens[*current + 1].line_num));
+    }
+
+    // Return a dummy node, this code is unreachable since throw_error() exits the program
+    return new_node("globDecl", None, None);
+}
+
+
 // variabledeclaration     : type identifier SEMICOLON
 //                         ;
 fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
     let mut current_token = &tokens[*current];
 
     // Create variable declaration node
@@ -220,6 +276,9 @@ fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
         throw_error(&format!("Syntax Error on line {}: variable declaration must end with a semicolon \";\"",
                     current_token.line_num));
     }
+
+    // Consume the semicolon token and move on to the next one
+    consume_token(current);
 
     // If we made it to here, we must have successfully parsed the variable declaration,
     // so return the newly created node!
@@ -244,6 +303,49 @@ fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
     // Return an identifier AST node corresponding to the ID token
     return new_node("id",
                     Some(current_token.lexeme.clone()),
+                    Some(current_token.line_num));
+}
+
+
+// functiondeclaration     : functionheader block
+//                         ;
+fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // HARD CODED UNTIL I IMPLEMENT THIS FUNCTION:
+    // Consume this token and move on to the next one
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+
+    // Until I actually implement this function, return a dummy AST node
+    return new_node("funcDecl",
+                    None,
+                    Some(current_token.line_num));
+}
+
+
+// mainfunctiondeclaration : FUNC mainfunctiondeclarator RETURNS VOID block
+//                         ;
+fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // HARD CODED UNTIL I IMPLEMENT THIS FUNCTION:
+    // Consume this token and move on to the next one
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+    consume_token(current);
+
+    // Until I actually implement this function, return a dummy AST node
+    return new_node("mainFuncDecl",
+                    None,
                     Some(current_token.line_num));
 }
 
