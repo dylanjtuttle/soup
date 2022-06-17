@@ -137,40 +137,6 @@ fn start_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 }
 
 
-// literal     : INTLIT
-//             | STRLIT
-//             | TRUE
-//             | FALSE
-//             ;
-fn literal_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
-    // Get current token
-    let current_token = &tokens[*current];
-
-    // Create AST leaf node for literal
-    let literal_node = new_node("literal",
-                                                      Some(current_token.lexeme.clone()),
-                                                      Some(current_token.line_num));
-
-    // Update the literal node type to correspond to the token we see
-    match current_token.name {
-        TokenName::INTLIT => {literal_node.borrow_mut().node_type = String::from("number");}
-        TokenName::STRLIT => {literal_node.borrow_mut().node_type = String::from("string");}
-        TokenName::TRUE => {literal_node.borrow_mut().node_type = String::from("true");}
-        TokenName::FALSE => {literal_node.borrow_mut().node_type = String::from("false");}
-        _ => {
-            throw_error(&format!("Syntax Error on line {}: literal must be an integer, string, \"true\", or \"false\"",
-                        tokens[*current + 1].line_num));
-        }
-    }
-
-    // Consume this token and move on to the next one
-    consume_token(current);
-
-    // Return the literal AST node
-    return literal_node;
-}
-
-
 fn type_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
     // Get current token
     let current_token = &tokens[*current];
