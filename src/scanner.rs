@@ -63,14 +63,18 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
     // Get a vector of characters from the file
     let chars = get_chars(code_file);
 
+    // Create a vector to add tokens to
     let mut tokens = Vec::new();
+
+    // Keep track of the line numbers
+    let mut line_num = 0;
 
     // Loop through the characters
     let mut i = 0;
     while i < chars.len() {
         // Get the current character
         let ch = chars[i].char_val;
-        let line_num = chars[i].line_num;
+        line_num = chars[i].line_num;
 
         // Let's check our cases:
 
@@ -510,17 +514,23 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     // We have an identifier
                     let mut id_char = chars[i].char_val;
                     let mut id_vec = Vec::new();
-                    id_vec.push(id_char);
 
                     // Loop until we've found a non-id character
                     while is_id_char(id_char) {
-                        i += 1;
+                        // Add the id character to the vector
                         id_char = chars[i].char_val;
                         id_vec.push(id_char);
+
+                        // Move to the next character and jump to the loop test again
+                        i += 1;
+                        id_char = chars[i].char_val;
                     }
 
+                    // We pushed one character too far because we had to find a non-id character to exit the loop
+                    i -= 1;
+
                     // Now that we've found the end of the identifier, turn the slice into a string
-                    let id_lexeme: String = id_vec[0..id_vec.len() - 1].iter().collect();
+                    let id_lexeme: String = id_vec[0..id_vec.len()].iter().collect();
 
                     // Push an 'identifier' token into the vector of tokens, with the newly created lexeme
                     tokens.push(Token {name: TokenName::ID, lexeme: id_lexeme, line_num: line_num});
@@ -589,7 +599,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
     }
 
     // Once we've gone through the whole file, add an EOF token at the end
-    tokens.push(Token {name: TokenName::EOF, lexeme: String::from("EOF"), line_num: 0});
+    tokens.push(Token {name: TokenName::EOF, lexeme: String::from("EOF"), line_num: line_num});
 
     // Return vector of tokens
     tokens
