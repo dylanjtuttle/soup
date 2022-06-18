@@ -36,22 +36,6 @@ impl ASTNode {
             self.children.push(node);
         }
     }
-
-    pub fn print_tree(&self, node: Rc<RefCell<ASTNode>>, num_tabs: i32) {
-        // Add the correct indentation by adding num_tabs tabs
-        for _i in 0..num_tabs {
-            print!("\t");                   // Print a tab without a newline at the end
-            io::stdout().flush().unwrap();  // 
-        }
-
-        // Print current node
-        println!("{}", node.borrow_mut().display_string());
-
-        // Call recursively on the nodes children
-        for child in &node.borrow_mut().children {
-            self.print_tree(Rc::clone(child), num_tabs + 1);
-        }
-    }
   
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);
@@ -137,6 +121,9 @@ fn start_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 }
 
 
+// type    	: BOOLEAN
+// 	        | INT
+// 	        ;
 fn type_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
     // Get current token
     let current_token = &tokens[*current];
@@ -279,19 +266,182 @@ fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
     // Get current token
     let current_token = &tokens[*current];
 
-    // HARD CODED UNTIL I IMPLEMENT THIS FUNCTION:
-    // Consume this token and move on to the next one
+    // Create dunction declaration node
+    let new_node = new_node("funcDecl",
+                                             None,
+                                         Some(current_token.line_num));
+    
+    // Add child through function header
+    new_node.borrow_mut().add_children(functionheader_(tokens, current));
+
+    // Add child through function header
+    new_node.borrow_mut().add_child(block_(tokens, current));
+
+    // Return function declaration node
+    return new_node;
+}
+
+
+// functionheader          : FUNC functiondeclarator RETURNS [type | VOID]
+//                         ;
+fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+    // Get current token
+    let mut current_token = &tokens[*current];
+
+    // Create a vector to hold the AST nodes
+    let mut node_vec = Vec::new();
+
+    // A function header always starts with a "func" keyword, otherwise we have a syntax error
+    if current_token.name != TokenName::FUNC {
+        throw_error(&format!("Syntax Error on line {}: function declaration must always start with a \"func\" keyword",
+                    current_token.line_num));
+    }
+
+    // Otherwise we found a "func" keyword, so we can consume it
     consume_token(current);
-    consume_token(current);
-    consume_token(current);
-    consume_token(current);
-    consume_token(current);
+    // Add nodes from the function declarator
+    for node in functiondeclarator_(tokens, current) {
+        node_vec.push(node);
+    }
+
+    // Next we should see the "returns" keyword
+    current_token = &tokens[*current];
+    if current_token.name != TokenName::RETURNS {
+        throw_error(&format!("Syntax Error on line {}: expected \"returns\" keyword",
+                    current_token.line_num));
+    }
+
+    // Otherwise we found a "return" keyword, so we can consume it
     consume_token(current);
 
-    // Until I actually implement this function, return a dummy AST node
-    return new_node("funcDecl",
-                    None,
-                    Some(current_token.line_num));
+    // Create a node to hold the return value of the function
+    let returns_node = new_node("returns", None, None);
+
+    current_token = &tokens[*current];
+    if current_token.name == TokenName::VOID {
+        returns_node.borrow_mut().add_child(new_node("void",
+                                                     Some(String::from("void")),
+                                                     Some(current_token.line_num)));
+        
+        // Consume void token
+        consume_token(current);
+
+    } else {
+        // Otherwise we should see a type
+        returns_node.borrow_mut().add_child(type_(tokens, current));
+    }
+
+    // Add the return node to the list
+    node_vec.push(returns_node);
+
+    // Finally we can return our function header nodes
+    return node_vec;
+}
+
+
+// functiondeclarator      : identifier OPENPAR {formalparameterlist} CLOSEPAR
+//                         ;
+fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+    // Create a vector to hold the AST nodes
+    let mut node_vec = Vec::new();
+
+    // Add node for function name (identifier)
+    node_vec.push(identifier_(tokens, current));
+
+    // Next we should see an open parenthesis:
+    let mut current_token = &tokens[*current];
+    if current_token.name != TokenName::OPENPAR {
+        throw_error(&format!("Syntax Error on line {}: function name must be followed by a parameter list enclosed in parentheses \"(\" \")\"",
+                    current_token.line_num));
+    }
+
+    // Otherwise we found a "(", so we can consume it
+    consume_token(current);
+    current_token = &tokens[*current];
+
+    // Now we can start parsing the parameter list
+    let param_list = new_node("parameterList",
+                                               None,
+                                           Some(current_token.line_num));
+    
+    // Add one child for each parameter in the list
+    param_list.borrow_mut().add_children(formalparameterlist_(tokens, current));
+
+    // Add param list to function declarator node
+    node_vec.push(param_list);
+
+    // Next we should see an close parenthesis:
+    current_token = &tokens[*current];
+    if current_token.name != TokenName::CLOSEPAR {
+        throw_error(&format!("Syntax Error on line {}: function parameter list must be followed up by a close parenthesis \")\"",
+                    current_token.line_num));
+    }
+
+    // Otherwise we found a ")", so we can consume it
+    consume_token(current);
+
+    // We can now return our list of nodes
+    return node_vec;
+}
+
+
+// formalparameterlist     : formalparameter [COMMA formalparameter]*
+//                         ;
+fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+    // Get current token
+    let mut current_token = &tokens[*current];
+
+    // Create a vector to hold the AST nodes
+    let mut param_list = Vec::new();
+
+    if current_token.name == TokenName::CLOSEPAR {
+        // If the current token is a close parenthesis, this function has no parameters and we can return an empty list
+        return param_list;
+    }
+
+    // Otherwise, we have at least one parameter that we need to parse
+    param_list.push(formalparameter_(tokens, current));
+
+    // Loop through more parameters until we reach the close parenthesis
+    current_token = &tokens[*current];
+
+    while current_token.name != TokenName::CLOSEPAR {
+
+        if current_token.name == TokenName::COMMA {
+            // Consume comma token and then parse the following parameter
+            consume_token(current);
+            param_list.push(formalparameter_(tokens, current));
+
+            // Update current token
+            current_token = &tokens[*current];
+
+        } else {
+            throw_error(&format!("Syntax Error on line {}: function parameter list must be a comma separated list of parameters",
+                        current_token.line_num));
+        }
+    }
+
+    return param_list;
+}
+
+
+// formalparameter         : type identifier
+//                         ;
+fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    let param = new_node("parameter",
+                                          None,
+                                      Some(current_token.line_num));
+
+    // Add child for parameter type
+    param.borrow_mut().add_child(type_(tokens, current));
+
+    // Add child for parameter identifier
+    param.borrow_mut().add_child(identifier_(tokens, current));
+
+    return param;
 }
 
 
@@ -311,6 +461,24 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
 
     // Until I actually implement this function, return a dummy AST node
     return new_node("mainFuncDecl",
+                    None,
+                    Some(current_token.line_num));
+}
+
+
+// block                   : OPENBRACE {blockstatements} OPENBRACE
+//                         ;
+fn block_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // HARD CODED UNTIL I IMPLEMENT THIS FUNCTION:
+    // Consume this token and move on to the next one
+    consume_token(current);
+    consume_token(current);
+
+    // Until I actually implement this function, return a dummy AST node
+    return new_node("block",
                     None,
                     Some(current_token.line_num));
 }
