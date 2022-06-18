@@ -1,7 +1,15 @@
 int test_variable;
 
-func main() returns void {}
+func main() returns void {
+    int x;
+}
 
-func test_func_one() returns void {}
+func test_func_one() returns void {
+    int y;
+}
 
-func test_func_two(int param_one, bool param_two) returns int {}
+func test_func_two(int param_one, bool param_two) returns int {
+    int z;
+    break;
+    return z;
+}

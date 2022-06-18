@@ -537,21 +537,260 @@ fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCe
 }
 
 
-// block                   : OPENBRACE {blockstatements} OPENBRACE
+// block                   : OPENBRACE {blockstatements} CLOSEBRACE
 //                         ;
 fn block_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
     // Get current token
+    let mut current_token = &tokens[*current];
+
+    let block_node = new_node("block", None, Some(current_token.line_num));
+
+    // A block should always start with an open brace
+    if current_token.name != TokenName::OPENBRACE {
+        throw_error(&format!("Syntax Error on line {}: expected an open brace \"{{\"",
+                    current_token.line_num));
+    }
+
+    // Otherwise, we found an open brace token, so we can consume it
+    consume_token(current);
+
+    // Add block statements as children to our block node
+    block_node.borrow_mut().add_children(blockstatements_(tokens, current));
+
+    // A block should always end with a close brace
+    current_token = &tokens[*current];
+    if current_token.name != TokenName::CLOSEBRACE {
+        throw_error(&format!("Syntax Error on line {}: expected a close brace \"}}\"",
+                    current_token.line_num));
+    }
+
+    // Otherwise, we found an open brace token, so we can consume it
+    consume_token(current);
+
+    // Return the block node
+    return block_node;
+}
+
+
+// blockstatements         : [blockstatement]+
+//                         ;
+fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+    // Get current token
+    let mut current_token = &tokens[*current];
+
+    // Create vector to hold block statement nodes
+    let mut statement_vec = Vec::new();
+
+    // Blocks cannot be empty, so if the first token we see is a close brace, we have a syntax error:
+    if current_token.name == TokenName::CLOSEBRACE {
+        throw_error(&format!("Syntax Error on line {}: block cannot be empty",
+                    current_token.line_num));
+    }
+
+    // Otherwise, we have a non-empty block, so we can loop until we find that close brace
+    while current_token.name != TokenName::CLOSEBRACE {
+        statement_vec.push(blockstatement_(tokens, current));
+        current_token = &tokens[*current];
+    }
+
+    return statement_vec;
+}
+
+
+// blockstatement          : variabledeclaration
+//                         | statement
+//                         ;
+fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
     let current_token = &tokens[*current];
 
-    // HARD CODED UNTIL I IMPLEMENT THIS FUNCTION:
-    // Consume this token and move on to the next one
-    consume_token(current);
+    // A block statement can either be a variable declaration or a statement
+    // If it is a variable declaration, the first token we will find is a type (int or bool)
+    if current_token.name == TokenName::INT || current_token.name == TokenName::BOOL {
+        return variabledeclaration_(tokens, current);
+    } else {
+        // Otherwise, it is a statement, and if the first token doesn't match any of those options,
+        // we will deal with the syntax error in there
+        return statement_(tokens, current);
+    }
+}
+
+
+// statement               : block
+//                         | SEMICOLON
+//                         | statementexpression SEMICOLON
+//                         | BREAK SEMICOLON
+//                         | RETURN expression SEMICOLON
+//                         | RETURN SEMICOLON
+//                         | IF expression statement
+//                         | IF expression statement ELSE statement
+//                         | WHILE expression statement
+//                         ;
+fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let mut current_token = &tokens[*current];
+
+    match current_token.name {
+        // If the statement is a block, the first token we see is an open brace
+        TokenName::OPENBRACE => {return block_(tokens, current);}
+
+        // If the statement is a void statement, the first token we see is a semicolon
+        TokenName::SEMICOLON => {
+            // Consume semicolon token
+            consume_token(current);
+            current_token = &tokens[*current];
+
+            return new_node("voidStmt", None, Some(current_token.line_num));
+        }
+
+        // If the statement is a statement expression (which can be either an assignment or a function call),
+        // the first token we see is an identifier
+        TokenName::ID => {return statementexpression_(tokens, current);}
+
+        // If the statement is a break statement, the first token we see is a BREAK token
+        TokenName::BREAK => {
+            // Consume break token
+            consume_token(current);
+            current_token = &tokens[*current];
+
+            // Break statement must be followed by a semicolon
+            if current_token.name != TokenName::SEMICOLON {
+                throw_error(&format!("Syntax Error on line {}: break statement must end with a semicolon",
+                            current_token.line_num));
+            }
+
+            // Otherwise, consume semicolon token
+            consume_token(current);
+
+            return new_node("break", None, Some(tokens[*current - 2].line_num));
+        }
+
+        // If the statement is a return statement, the first token we see is a RETURN token
+        TokenName::RETURN => {
+            // Consume return token
+            consume_token(current);
+            current_token = &tokens[*current];
+
+            if current_token.name == TokenName::SEMICOLON {
+                // We have an empty return statement, consume semicolon token
+                consume_token(current);
+                current_token = &tokens[*current];
+
+                return new_node("return", None, Some(current_token.line_num));
+
+            } else {
+                println!("\nNON-EMPTY RETURN!!!\n");
+                let return_node = new_node("return", None, Some(current_token.line_num));
+
+                return_node.borrow_mut().add_child(expression_(tokens, current));
+
+                // Return statement must end with a semicolon
+                current_token = &tokens[*current];
+                if current_token.name != TokenName::SEMICOLON {
+                    throw_error(&format!("Syntax Error on line {}: return statement must end with a semicolon",
+                                current_token.line_num));
+                }
+
+                // Otherwise, consume semicolon token
+                consume_token(current);
+
+                return return_node;
+            }
+        }
+
+        // If the statement is an if or if-else statement, the first token we see is an IF token
+        TokenName::IF => {
+            // Consume if token
+            consume_token(current);
+            
+            // Parse if expression
+            let if_expr_node = expression_(tokens, current);
+
+            // Parse if body
+            let statement_node = statement_(tokens, current);
+
+            // Check if this is an if statement or an if-else statement
+            current_token = &tokens[*current];
+            if current_token.name != TokenName::ELSE {
+                // If there is no else, create the if node
+                let if_node = new_node("if", None, Some(current_token.line_num));
+
+                // Add the expression and statement nodes
+                if_node.borrow_mut().add_child(if_expr_node);
+                if_node.borrow_mut().add_child(statement_node);
+
+                // Return if node
+                return if_node;
+            } else {
+                // If there is an else, create an if-else node and continue parsing
+                let if_else_node = new_node("ifElse", None, Some(current_token.line_num));
+
+                // Add the expression and statement nodes
+                if_else_node.borrow_mut().add_child(if_expr_node);
+                if_else_node.borrow_mut().add_child(statement_node);
+
+                // Consume else token
+                consume_token(current);
+
+                // Add the else statement
+                if_else_node.borrow_mut().add_child(statement_(tokens, current));
+
+                // Return if-else node
+                return if_else_node;
+            }
+        }
+
+        // If the statement is a while loop, the first token we see is a WHILE token
+        TokenName::WHILE => {
+            // Consume while token
+            consume_token(current);
+            current_token = &tokens[*current];
+
+            // Create while node
+            let while_node = new_node("while", None, Some(current_token.line_num));
+
+            // Add the expression node
+            while_node.borrow_mut().add_child(expression_(tokens, current));
+
+            // Add the body of the loop
+            while_node.borrow_mut().add_child(statement_(tokens, current));
+
+            return while_node;
+        }
+
+        // Otherwise, we have a syntax error
+        _ => {
+            throw_error(&format!("Syntax Error on line {}: not a valid statement",
+                        current_token.line_num));
+            
+            // Return dummy node to avoid the compiler getting angry with me
+            return new_node("statement", None, None);
+        }
+    }
+}
+
+
+// statementexpression     : assignment
+//                         | functioninvocation
+//                         ;
+fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    return new_node("voidStmt", None, Some(current_token.line_num));
+}
+
+
+// expression              : assignmentexpression
+//                         ;
+fn expression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let current_token = &tokens[*current];
+
+    // HARD CODED
     consume_token(current);
 
-    // Until I actually implement this function, return a dummy AST node
-    return new_node("block",
-                    None,
-                    Some(current_token.line_num));
+    return new_node("expression of some kind", None, Some(current_token.line_num));
 }
 
 
