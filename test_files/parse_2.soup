@@ -1,0 +1,25 @@
+// Test if statements and while loops
+
+func main() returns void {
+    // if
+    if some_bool {
+        ;
+    }
+
+    // if with assignment
+    if x = true {
+        ;
+    }
+
+    // if-else
+    if x == 1 {
+        ;
+    } else {
+        ;
+    }
+
+    // while
+    while (x = 0) <= 200 {
+        x += 1;
+    }
+}

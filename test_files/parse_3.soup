@@ -1,0 +1,19 @@
+// Test binary and unary expressions
+
+func main() returns void {
+    x = 1 + 2 * 3;
+    x = (1 + 2) * 3;
+
+    y = true == true && false;
+    y = true == (true && false);
+
+    z = 1 <= 3 == 5 >= 3;
+    z = (1 <= 3) == (5 >= 3);
+
+    a = -1;
+    a = --1;
+    a = ---a;
+
+    b = !true;
+    b = !!(1 == 2);
+}

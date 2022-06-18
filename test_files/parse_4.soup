@@ -1,0 +1,20 @@
+// Test function calls
+
+func main() returns void {
+    func_one();
+
+    func_two(1);
+
+    func_three(arg, 1 + 1);
+
+    func_four(arg_one += 1, arg_two == 1);
+
+    func_five(
+        1,
+        2,
+        true,
+        false
+    );
+
+    func_six("test string\n");
+}
