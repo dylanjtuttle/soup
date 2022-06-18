@@ -518,7 +518,6 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     // Loop until we've found a non-id character
                     while is_id_char(id_char) {
                         // Add the id character to the vector
-                        id_char = chars[i].char_val;
                         id_vec.push(id_char);
 
                         // Move to the next character and jump to the loop test again
@@ -543,17 +542,22 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                 // Integer literal, we have to check for multiple digit literals
                 let mut int_lit_char = chars[i].char_val;
                 let mut int_lit_vec = Vec::new();
-                int_lit_vec.push(int_lit_char);
 
                 // Loop until we've found a non-digit character
                 while is_digit(int_lit_char) {
+                    // Add digit character to the vector
+                    int_lit_vec.push(int_lit_char);
+
+                    // Move to the next character and jump to the loop test again
                     i += 1;
                     int_lit_char = chars[i].char_val;
-                    int_lit_vec.push(int_lit_char);
                 }
 
+                // We pushed one character too far because we had to find a non-digit character to exit the loop
+                i -= 1;
+
                 // Now that we've found the end of the integer literal, turn the slice into a string
-                let int_lit_lexeme: String = int_lit_vec[0..int_lit_vec.len() - 1].iter().collect();
+                let int_lit_lexeme: String = int_lit_vec[0..int_lit_vec.len()].iter().collect();
 
                 // Push an 'integer literal' token into the vector of tokens, with the newly created lexeme
                 tokens.push(Token {name: TokenName::INTLIT, lexeme: int_lit_lexeme, line_num: line_num});
@@ -625,7 +629,6 @@ fn is_digit(digit_char: char) -> bool {
 }
 
 fn has_enough_chars(chars: &Vec<Char>, i: &usize, num_chars: usize) -> bool {
-    println!("i: {}, chars[i]: {}, chars left: {}", i, chars[*i].char_val, chars.len() - i);
     chars.len() - i - 1 >= num_chars
 }
 
