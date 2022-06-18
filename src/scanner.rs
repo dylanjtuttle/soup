@@ -382,7 +382,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::IF, lexeme: String::from("if"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 2;
+                    i += 1;
                 } else if is_reserved(vec![chars[i].char_val,
                                                    chars[i + 1].char_val,
                                                    chars[i + 2].char_val,
@@ -391,7 +391,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::INT, lexeme: String::from("int"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 3;
+                    i += 2;
                 } else if is_reserved(vec![chars[i].char_val,
                                                    chars[i + 1].char_val,
                                                    chars[i + 2].char_val,
@@ -401,7 +401,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::TRUE, lexeme: String::from("true"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 4;
+                    i += 3;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -411,7 +411,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::BOOL, lexeme: String::from("bool"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 4;
+                    i += 3;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -421,7 +421,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::VOID, lexeme: String::from("void"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 4;
+                    i += 3;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -431,7 +431,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::ELSE, lexeme: String::from("else"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 4;
+                    i += 3;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -441,7 +441,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::FUNC, lexeme: String::from("func"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 4;
+                    i += 3;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -451,7 +451,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::MAIN, lexeme: String::from("main"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 4;
+                    i += 3;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -462,7 +462,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::FALSE, lexeme: String::from("false"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 5;
+                    i += 4;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -473,7 +473,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::WHILE, lexeme: String::from("while"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 5;
+                    i += 4;
                 } else if is_reserved(vec![chars[i].char_val,
                                         chars[i + 1].char_val,
                                         chars[i + 2].char_val,
@@ -484,7 +484,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::BREAK, lexeme: String::from("break"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 5;
+                    i += 4;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -496,7 +496,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::RETURN, lexeme: String::from("return"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 6;
+                    i += 5;
                 } else if is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
@@ -509,7 +509,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     tokens.push(Token {name: TokenName::RETURNS, lexeme: String::from("returns"), line_num: line_num});
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
-                    i += 7;
+                    i += 6;
                 } else {
                     // We have an identifier
                     let mut id_char = chars[i].char_val;
