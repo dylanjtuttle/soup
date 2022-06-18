@@ -375,7 +375,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
             'A'..='Z' | 'a'..='z' | '_' => {
                 // Possible identifier, but we have to check for reserved words first
 
-                if is_reserved(vec![chars[i].char_val,
+                if has_enough_chars(&chars, &i, 2) && is_reserved(vec![chars[i].char_val,
                                             chars[i + 1].char_val,
                                             chars[i + 2].char_val], "if") {
                     // Push an 'if' token into the vector of tokens
@@ -383,7 +383,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 1;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 3) && is_reserved(vec![chars[i].char_val,
                                                    chars[i + 1].char_val,
                                                    chars[i + 2].char_val,
                                                    chars[i + 3].char_val], "int") {
@@ -392,7 +392,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 2;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 4) && is_reserved(vec![chars[i].char_val,
                                                    chars[i + 1].char_val,
                                                    chars[i + 2].char_val,
                                                    chars[i + 3].char_val,
@@ -402,7 +402,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 4) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -412,7 +412,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 4) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -422,7 +422,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 4) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -432,7 +432,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 4) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -442,7 +442,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 4) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -452,7 +452,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 3;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 5) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -463,7 +463,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 5) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -474,7 +474,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 5) && is_reserved(vec![chars[i].char_val,
                                         chars[i + 1].char_val,
                                         chars[i + 2].char_val,
                                         chars[i + 3].char_val,
@@ -485,7 +485,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 4;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 6) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -497,7 +497,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // Skip the chars comprising the reserved word, since they're a part of our current token
                     i += 5;
-                } else if is_reserved(vec![chars[i].char_val,
+                } else if has_enough_chars(&chars, &i, 7) && is_reserved(vec![chars[i].char_val,
                                                     chars[i + 1].char_val,
                                                     chars[i + 2].char_val,
                                                     chars[i + 3].char_val,
@@ -622,6 +622,11 @@ fn is_id_char(id_char: char) -> bool {
 // Returns true if a character is in 0..9
 fn is_digit(digit_char: char) -> bool {
     digit_char >= '0' && digit_char <= '9'
+}
+
+fn has_enough_chars(chars: &Vec<Char>, i: &usize, num_chars: usize) -> bool {
+    println!("i: {}, chars[i]: {}, chars left: {}", i, chars[*i].char_val, chars.len() - i);
+    chars.len() - i - 1 >= num_chars
 }
 
 struct Char {
