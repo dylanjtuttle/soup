@@ -266,7 +266,7 @@ fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
     // Get current token
     let current_token = &tokens[*current];
 
-    // Create dunction declaration node
+    // Create function declaration node
     let new_node = new_node("funcDecl",
                                              None,
                                          Some(current_token.line_num));
@@ -274,7 +274,7 @@ fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
     // Add child through function header
     new_node.borrow_mut().add_children(functionheader_(tokens, current));
 
-    // Add child through function header
+    // Add child for block
     new_node.borrow_mut().add_child(block_(tokens, current));
 
     // Return function declaration node
@@ -311,7 +311,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<A
                     current_token.line_num));
     }
 
-    // Otherwise we found a "return" keyword, so we can consume it
+    // Otherwise we found a "returns" keyword, so we can consume it
     consume_token(current);
 
     // Create a node to hold the return value of the function
@@ -449,20 +449,91 @@ fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTN
 //                         ;
 fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
     // Get current token
-    let current_token = &tokens[*current];
+    let mut current_token = &tokens[*current];
 
-    // HARD CODED UNTIL I IMPLEMENT THIS FUNCTION:
-    // Consume this token and move on to the next one
+    // Create function declaration node
+    let main_decl_node = new_node("mainFuncDecl",
+                                             None,
+                                         Some(current_token.line_num));
+
+    // A function declaration always starts with a "func" keyword, otherwise we have a syntax error
+    if current_token.name != TokenName::FUNC {
+        throw_error(&format!("Syntax Error on line {}: main function declaration must always start with a \"func\" keyword",
+                    current_token.line_num));
+    }
+
+    // Otherwise we found a "func" keyword, so we can consume it
     consume_token(current);
-    consume_token(current);
-    consume_token(current);
-    consume_token(current);
+    
+    // Parse main function declarator
+    main_decl_node.borrow_mut().add_child(mainfunctiondeclarator_(tokens, current));
+
+    // Next we should see the "returns" keyword
+    current_token = &tokens[*current];
+    if current_token.name != TokenName::RETURNS {
+        throw_error(&format!("Syntax Error on line {}: expected \"returns\" keyword",
+                    current_token.line_num));
+    }
+
+    // Otherwise we found a "returns" keyword, so we can consume it
     consume_token(current);
 
-    // Until I actually implement this function, return a dummy AST node
-    return new_node("mainFuncDecl",
-                    None,
-                    Some(current_token.line_num));
+    // Create a node to hold the return value of the function
+    let returns_node = new_node("returns", None, None);
+
+    current_token = &tokens[*current];
+    if current_token.name == TokenName::VOID {
+        returns_node.borrow_mut().add_child(new_node("void",
+                                                     Some(String::from("void")),
+                                                     Some(current_token.line_num)));
+        
+        // Consume void token
+        consume_token(current);
+
+    } else {
+        throw_error(&format!("Syntax Error on line {}: main function must return \"void\"",
+                    current_token.line_num));
+    }
+
+    // Add returns node to main declaration node
+    main_decl_node.borrow_mut().add_child(returns_node);
+
+    // Add child for block
+    main_decl_node.borrow_mut().add_child(block_(tokens, current));
+
+    // Return function declaration node
+    return main_decl_node;
+}
+
+
+// mainfunctiondeclarator  : MAIN OPENPAR CLOSEPAR
+//                         ;
+fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+    // Get current token
+    let mut current_token = &tokens[*current];
+
+    // Main function must be called "main"
+    if current_token.name != TokenName::MAIN {
+        throw_error(&format!("Syntax Error on line {}: main function must be called \"main\"",
+                    current_token.line_num));
+    }
+
+    // Otherwise, we found a "main" keyword, so we can consume it
+    consume_token(current);
+    current_token = &tokens[*current];
+
+    // "main" keyword must be followed by "()"
+    if current_token.name != TokenName::OPENPAR || tokens[*current + 1].name != TokenName::CLOSEPAR {
+        throw_error(&format!("Syntax Error on line {}: \"main\" keyword must be followed by \"()\"",
+                    current_token.line_num));
+    }
+
+    // Otherwise, we found a pair of tokens "()", so we can consume them
+    consume_token(current);
+    consume_token(current);
+    current_token = &tokens[*current];
+
+    return new_node("id", Some(String::from("main")), Some(current_token.line_num));
 }
 
 
