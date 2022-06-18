@@ -706,7 +706,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
             current_token = &tokens[*current];
             if current_token.name != TokenName::SEMICOLON {
                 throw_error(&format!("Syntax Error on line {}: expression must end with a semicolon",
-                            current_token.line_num));
+                            tokens[*current - 1].line_num));
             }
 
             // Otherwise, consume semicolon token
@@ -1238,7 +1238,7 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell
         let rhs = additiveexpression_(tokens, current);
 
         // Get what might be another rel
-        let possible_rel = equalityrhs_(tokens, current);
+        let possible_rel = relationalrhs_(tokens, current);
 
         match possible_rel {
             // If there is no other rel, we can simply return the rhs
