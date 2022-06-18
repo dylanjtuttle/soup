@@ -767,6 +767,9 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
 
         // If the statement is an if or if-else statement, the first token we see is an IF token
         TokenName::IF => {
+            // Get line number of the IF token
+            let if_line_num = current_token.line_num;
+
             // Consume if token
             consume_token(current);
             
@@ -780,7 +783,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
             current_token = &tokens[*current];
             if current_token.name != TokenName::ELSE {
                 // If there is no else, create the if node
-                let if_node = new_node("if", None, Some(current_token.line_num));
+                let if_node = new_node("if", None, Some(if_line_num));
 
                 // Add the expression and statement nodes
                 if_node.borrow_mut().add_child(if_expr_node);
@@ -790,7 +793,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
                 return if_node;
             } else {
                 // If there is an else, create an if-else node and continue parsing
-                let if_else_node = new_node("ifElse", None, Some(current_token.line_num));
+                let if_else_node = new_node("ifElse", None, Some(if_line_num));
 
                 // Add the expression and statement nodes
                 if_else_node.borrow_mut().add_child(if_expr_node);
@@ -811,7 +814,6 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
         TokenName::WHILE => {
             // Consume while token
             consume_token(current);
-            current_token = &tokens[*current];
 
             // Create while node
             let while_node = new_node("while", None, Some(current_token.line_num));
