@@ -410,12 +410,9 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCe
 
     // Otherwise we found a "(", so we can consume it
     consume_token(current);
-    current_token = &tokens[*current];
 
     // Now we can start parsing the parameter list
-    let param_list = new_node("parameterList",
-                                               None,
-                                           Some(current_token.line_num));
+    let param_list = new_node("parameters", None, None);
     
     // Add one child for each parameter in the list
     param_list.borrow_mut().add_children(formalparameterlist_(tokens, current));
@@ -521,8 +518,8 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
     // Parse main function declarator
     main_decl_node.borrow_mut().add_child(mainfunctiondeclarator_(tokens, current));
 
-    // Add "parameterList" node, even though it doesn't take any params, just so it can have the same format as a regular funcDecl
-    main_decl_node.borrow_mut().add_child(new_node("parameterList", None, Some(current_token.line_num)));
+    // Add "parameters" node, even though it doesn't take any params, just so it can have the same format as a regular funcDecl
+    main_decl_node.borrow_mut().add_child(new_node("parameters", None, None));
 
     // Next we should see the "returns" keyword
     current_token = &tokens[*current];
@@ -701,7 +698,22 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
 
         // If the statement is a statement expression (which can be either an assignment or a function call),
         // the first token we see is an identifier
-        TokenName::ID => {return statementexpression_(tokens, current);}
+        TokenName::ID => {
+            // Parse statement expression
+            let stmt_expr = statementexpression_(tokens, current);
+
+            // Statement expression must be followed by a semicolon
+            current_token = &tokens[*current];
+            if current_token.name != TokenName::SEMICOLON {
+                throw_error(&format!("Syntax Error on line {}: expression must end with a semicolon",
+                            current_token.line_num));
+            }
+
+            // Otherwise, consume semicolon token
+            consume_token(current);
+
+            return stmt_expr;
+        }
 
         // If the statement is a break statement, the first token we see is a BREAK token
         TokenName::BREAK => {
