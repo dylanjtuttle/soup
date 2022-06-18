@@ -1,5 +1,5 @@
 int test_variable;
 
-func main() {}
+func test_func_one() returns void {}
 
-func test_func() {}
+func test_func_two(int param_one, bool param_two) returns int {}
