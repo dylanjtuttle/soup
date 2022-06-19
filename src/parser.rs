@@ -11,10 +11,10 @@ use crate::{scanner::{Token, TokenName}, throw_error};
 // -----------------------------------------------------------------
 
 pub struct ASTNode {
-    node_type: String,
-    attr: Option<String>,
-    line_num: Option<i32>,
-    children: Vec<Rc<RefCell<ASTNode>>>,
+    pub node_type: String,
+    pub attr: Option<String>,
+    pub line_num: Option<i32>,
+    pub children: Vec<Rc<RefCell<ASTNode>>>,
 }
 
 impl ASTNode {
@@ -89,7 +89,7 @@ fn new_node(node_type: &str, attr: Option<String>, line_num: Option<i32>) -> Rc<
     return node;
 }
 
-pub fn print_ast(node: Rc<RefCell<ASTNode>>, num_tabs: i32) {
+pub fn print_ast(node: &Rc<RefCell<ASTNode>>, num_tabs: i32) {
     // Add the correct indentation by adding num_tabs tabs
     for _i in 0..num_tabs {
         print!("\t");                   // Print a tab without a newline at the end
@@ -101,7 +101,7 @@ pub fn print_ast(node: Rc<RefCell<ASTNode>>, num_tabs: i32) {
 
     // Call recursively on the nodes children
     for child in &node.borrow_mut().children {
-        print_ast(Rc::clone(child), num_tabs + 1);
+        print_ast(&Rc::clone(child), num_tabs + 1);
     }
 }
 
