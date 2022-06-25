@@ -247,7 +247,12 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<AS
 
     } else if current_token.name == TokenName::INT || current_token.name == TokenName::BOOL {
         // We have a variable declaration
-        return variabledeclaration_(tokens, current);
+        let glob_var_decl = variabledeclaration_(tokens, current);
+
+        // We have to rename the "varDecl" node "globVarDecl" to distinguish from a variable declaration inside a function
+        glob_var_decl.borrow_mut().node_type = String::from("globVarDecl");
+        
+        return glob_var_decl;
 
     } else {
         throw_error(&format!("Syntax Error on line {}: global declaration must take the form of a function or variable declaration",
