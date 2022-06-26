@@ -6,21 +6,21 @@ A simple programming language, built from scratch in Rust
 ### Grammar
 
 ```
-start		: {globaldeclarations}
-			;
+start                   : {globaldeclarations}
+                        ;
 
-literal     : INTLIT
-            | STRLIT
-            | TRUE
-            | FALSE
-            ;
+literal                 : INTLIT
+                        | STRLIT
+                        | TRUE
+                        | FALSE
+                        ;
 
-type    	: BOOLEAN
-	        | INT
-	        ;
+type                    : BOOLEAN
+                        | INT
+                        ;
 
-globaldeclarations		: [globaldeclaration]+
-						;
+globaldeclarations      : [globaldeclaration]+
+                        ;
 
 globaldeclaration       : variabledeclaration
                         | functiondeclaration
