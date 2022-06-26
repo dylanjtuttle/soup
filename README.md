@@ -107,12 +107,12 @@ unaryexpression         : MINUS unaryexpression
 multiplicativeexpression: unaryexpression multiplicativerhs
                         ;
 
-multiplicativerhs		: MULT unaryexpression multiplicativerhs
-						| DIV unaryexpression multiplicativerhs
-						| MOD unaryexpression multiplicativerhs
-						| POWER INTLIT multiplicativerhs
-						| /* nothing */
-						;
+multiplicativerhs	: MULT unaryexpression multiplicativerhs
+			| DIV unaryexpression multiplicativerhs
+			| MOD unaryexpression multiplicativerhs
+			| POWER INTLIT multiplicativerhs
+			| /* nothing */
+			;
 
 
 
@@ -120,10 +120,10 @@ multiplicativerhs		: MULT unaryexpression multiplicativerhs
 additiveexpression      : multiplicativeexpression additiverhs
                         ;
 
-additiverhs				: PLUS multiplicativeexpression additiverhs
-						| MINUS multiplicativeexpression additiverhs
-						| /* nothing */
-						;
+additiverhs		: PLUS multiplicativeexpression additiverhs
+			| MINUS multiplicativeexpression additiverhs
+			| /* nothing */
+			;
 
 
 
@@ -131,12 +131,12 @@ additiverhs				: PLUS multiplicativeexpression additiverhs
 relationalexpression    : additiveexpression relationalrhs
                         ;
 
-relationalrhs			: LT additiveexpression relationalrhs
-						| GT additiveexpression relationalrhs
-						| LEQ additiveexpression relationalrhs
-						| GEQ additiveexpression relationalrhs
-						| /* nothing */
-						;
+relationalrhs		: LT additiveexpression relationalrhs
+			| GT additiveexpression relationalrhs
+			| LEQ additiveexpression relationalrhs
+			| GEQ additiveexpression relationalrhs
+			| /* nothing */
+			;
 
 
 
@@ -144,10 +144,10 @@ relationalrhs			: LT additiveexpression relationalrhs
 equalityexpression      : relationalexpression equalityrhs
                         ;
 
-equalityrhs				: EQ relationalexpression equalityrhs
-						| NEQ relationalexpression equalityrhs
-						| /* nothing */
-						;
+equalityrhs		: EQ relationalexpression equalityrhs
+			| NEQ relationalexpression equalityrhs
+			| /* nothing */
+			;
 
 
 
@@ -155,8 +155,8 @@ equalityrhs				: EQ relationalexpression equalityrhs
 conditionalandexpression: equalityexpression conditionalandrhs
                         ;
 
-conditionalandrhs		: {AND equalityexpression conditionalandrhs}
-						;
+conditionalandrhs	: {AND equalityexpression conditionalandrhs}
+			;
 
 
 
@@ -164,8 +164,8 @@ conditionalandrhs		: {AND equalityexpression conditionalandrhs}
 conditionalorexpression : conditionalandexpression conditionalorrhs
                         ;
 
-conditionalorrhs		: {OR conditionalandexpression conditionalorrhs}
-						;
+conditionalorrhs	: {OR conditionalandexpression conditionalorrhs}
+			;
 
 
 
@@ -175,12 +175,12 @@ assignmentexpression    : conditionalorexpression
                         ;
 
 assignment              : identifier ASSIGN assignmentexpression
-						: identifier PLUSEQ INTLIT
-						: identifier MINUSEQ INTLIT
-						: identifier MULTEQ INTLIT
-						: identifier DIVEQ INTLIT
-						: identifier MODEQ INTLIT
-						: identifier POWEREQ INTLIT
+			| identifier PLUSEQ INTLIT
+			| identifier MINUSEQ INTLIT
+			| identifier MULTEQ INTLIT
+			| identifier DIVEQ INTLIT
+			| identifier MODEQ INTLIT
+			| identifier POWEREQ INTLIT
                         ;
 
 expression              : assignmentexpression
