@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::{scanner::{Token, TokenName}, throw_error};
+use crate::semantic::Symbol;
 
 
 // -----------------------------------------------------------------
@@ -14,6 +15,7 @@ pub struct ASTNode {
     pub node_type: String,
     pub attr: Option<String>,
     pub line_num: Option<i32>,
+    pub sym: Option<Rc<RefCell<Symbol>>>,
     pub children: Vec<Rc<RefCell<ASTNode>>>,
 }
 
@@ -23,6 +25,7 @@ impl ASTNode {
             node_type: String::from(node_type),
             attr: attr,
             line_num: line_num,
+            sym: None,
             children: vec![],
         };
     }
@@ -55,6 +58,10 @@ impl ASTNode {
         // Replace the old children vector with the new one
         self.children = new_children;
     }
+
+    pub fn add_sym(&mut self, new_sym: Rc<RefCell<Symbol>>) {
+        self.sym = Some(new_sym);
+    }
   
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);
@@ -74,6 +81,17 @@ impl ASTNode {
         };
 
         display_string.push_str(&line_num);
+
+        // Only print symbol table entry if it exists
+        let sym = match &self.sym {
+            None => String::from(""),
+            Some(symbol_entry) => format!(", sym: {{name: {}, sig: {}, returns: {}}}",
+                                                                symbol_entry.borrow().name,
+                                                                symbol_entry.borrow().type_sig,
+                                                                symbol_entry.borrow().returns),
+        };
+
+        display_string.push_str(&sym);
 
         // Print node close brace
         display_string.push_str("}");
@@ -251,7 +269,7 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<AS
 
         // We have to rename the "varDecl" node "globVarDecl" to distinguish from a variable declaration inside a function
         glob_var_decl.borrow_mut().node_type = String::from("globVarDecl");
-        
+
         return glob_var_decl;
 
     } else {

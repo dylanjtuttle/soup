@@ -1,0 +1,7 @@
+func main() returns void {
+    ;
+}
+
+func test_func(int param_one, bool param_two) returns void {
+    ;
+}

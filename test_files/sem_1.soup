@@ -1,0 +1,5 @@
+// Test semantic error for no main function
+
+func not_main() returns void {
+    ;
+}

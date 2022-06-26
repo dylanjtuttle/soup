@@ -1,0 +1,9 @@
+// Test semantic error for multiple main functions
+
+func main() returns void {
+    ;
+}
+
+func main() returns void {
+    int x;
+}
