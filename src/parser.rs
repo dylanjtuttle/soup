@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Write;
 
-use crate::{scanner::{Token, TokenName}, throw_error};
+use crate::{scanner::{Token, TokenName}, throw_error, semantic::Symbol};
 
 
 #[derive(Clone)]
@@ -9,6 +9,7 @@ pub struct ASTNode {
     pub node_type: String,
     pub attr: Option<String>,
     pub line_num: Option<i32>,
+    pub sym: Option<Symbol>,
     pub children: Vec<ASTNode>,
 }
 
@@ -18,6 +19,7 @@ impl ASTNode {
             node_type: String::from(node_type),
             attr: attr,
             line_num: line_num,
+            sym: None,
             children: vec![],
         };
     }
@@ -52,6 +54,10 @@ impl ASTNode {
         self.children = new_children;
     }
 
+    pub fn add_sym(&mut self, new_sym: Symbol) {
+        self.sym = Some(new_sym);
+    }
+
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);
 
@@ -71,6 +77,17 @@ impl ASTNode {
 
         display_string.push_str(&line_num);
 
+        // Only print symbol table entry if it exists
+        let sym = match &self.sym {
+            None => String::from(""),
+            Some(symbol_entry) => format!(", sym: {{name: {}, sig: {}, returns: {}}}",
+                                                                symbol_entry.name,
+                                                                symbol_entry.type_sig,
+                                                                symbol_entry.returns),
+        };
+
+        display_string.push_str(&sym);
+
         // Print node close brace
         display_string.push_str("}");
 
@@ -82,7 +99,7 @@ fn new_node(node_type: &str, attr: Option<String>, line_num: Option<i32>) -> AST
     ASTNode::new(node_type, attr, line_num)
 }
 
-pub fn print_ast(node: &ASTNode, num_tabs: i32) {
+fn print_node(node: &ASTNode, num_tabs: i32) {
     // Add the correct indentation by adding num_tabs tabs
     for _i in 0..num_tabs {
         print!("\t");                   // Print a tab without a newline at the end
@@ -94,8 +111,20 @@ pub fn print_ast(node: &ASTNode, num_tabs: i32) {
 
     // Call recursively on the nodes children
     for child in &node.children {
-        print_ast(child, num_tabs + 1);
+        print_node(child, num_tabs + 1);
     }
+}
+
+// Small wrapper to improve the printing quality of the AST print
+// and abstract away the need to explicitly give the initial tab level
+pub fn print_ast(node: &ASTNode) {
+    println!("\n-------------------------------------------------------------------------------");
+    println!("AST: beginning from {{{}}} node", node.node_type);
+    println!("-------------------------------------------------------------------------------");
+
+    print_node(node, 0);
+
+    println!("-------------------------------------------------------------------------------\n");
 }
 
 
