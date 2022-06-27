@@ -6,7 +6,6 @@ use crate::parser::print_ast;
 
 pub mod scanner;
 pub mod parser;
-pub mod semantic;
 
 fn main() {
     // Get command line arguments
@@ -33,15 +32,11 @@ fn main() {
     println!("\nBEGIN PARSER");
 
     // print_ast(junk::parser(&tokens), 0);
-    let mut ast = parser::parser(&tokens);
+    let ast = parser::parser(&tokens);
 
     println!("\nPrint AST:\n");
 
     print_ast(&ast, 0);
-
-    println!("\nBEGIN SEMANTIC CHECKING");
-
-    semantic::semantic_checker(&mut ast);
 }
 
 pub fn throw_warning(msg: &str) {

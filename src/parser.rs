@@ -1,22 +1,15 @@
 use std::io;
 use std::io::Write;
-use std::rc::Rc;
-use std::cell::RefCell;
 
 use crate::{scanner::{Token, TokenName}, throw_error};
-use crate::semantic::Symbol;
 
 
-// -----------------------------------------------------------------
-// AST
-// -----------------------------------------------------------------
-
+#[derive(Clone)]
 pub struct ASTNode {
     pub node_type: String,
     pub attr: Option<String>,
     pub line_num: Option<i32>,
-    pub sym: Option<Rc<RefCell<Symbol>>>,
-    pub children: Vec<Rc<RefCell<ASTNode>>>,
+    pub children: Vec<ASTNode>,
 }
 
 impl ASTNode {
@@ -25,22 +18,22 @@ impl ASTNode {
             node_type: String::from(node_type),
             attr: attr,
             line_num: line_num,
-            sym: None,
             children: vec![],
         };
     }
-  
-    pub fn add_child(&mut self, new_node: Rc<RefCell<ASTNode>>) {
-      self.children.push(new_node);
-    }
+    
 
-    pub fn add_children(&mut self, new_nodes: Vec<Rc<RefCell<ASTNode>>>) {
+    pub fn add_child(&mut self, new_node: ASTNode) {
+        self.children.push(new_node);
+    }
+  
+    pub fn add_children(&mut self, new_nodes: Vec<ASTNode>) {
         for node in new_nodes {
             self.children.push(node);
         }
     }
 
-    pub fn add_child_to_front(&mut self, new_node: Rc<RefCell<ASTNode>>) {
+    pub fn add_child_to_front(&mut self, new_node: ASTNode) {
         // Get the current vector of children
         let children = &self.children;
 
@@ -59,10 +52,6 @@ impl ASTNode {
         self.children = new_children;
     }
 
-    pub fn add_sym(&mut self, new_sym: Rc<RefCell<Symbol>>) {
-        self.sym = Some(new_sym);
-    }
-  
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);
 
@@ -82,32 +71,18 @@ impl ASTNode {
 
         display_string.push_str(&line_num);
 
-        // Only print symbol table entry if it exists
-        let sym = match &self.sym {
-            None => String::from(""),
-            Some(symbol_entry) => format!(", sym: {{name: {}, sig: {}, returns: {}}}",
-                                                                symbol_entry.borrow().name,
-                                                                symbol_entry.borrow().type_sig,
-                                                                symbol_entry.borrow().returns),
-        };
-
-        display_string.push_str(&sym);
-
         // Print node close brace
         display_string.push_str("}");
 
         return display_string;
     }
-  }
-
-
-fn new_node(node_type: &str, attr: Option<String>, line_num: Option<i32>) -> Rc<RefCell<ASTNode>> {
-    let node = Rc::new(RefCell::new(ASTNode::new(node_type, attr, line_num)));
-
-    return node;
 }
 
-pub fn print_ast(node: &Rc<RefCell<ASTNode>>, num_tabs: i32) {
+fn new_node(node_type: &str, attr: Option<String>, line_num: Option<i32>) -> ASTNode {
+    ASTNode::new(node_type, attr, line_num)
+}
+
+pub fn print_ast(node: &ASTNode, num_tabs: i32) {
     // Add the correct indentation by adding num_tabs tabs
     for _i in 0..num_tabs {
         print!("\t");                   // Print a tab without a newline at the end
@@ -115,11 +90,11 @@ pub fn print_ast(node: &Rc<RefCell<ASTNode>>, num_tabs: i32) {
     }
 
     // Print current node
-    println!("{}", node.borrow_mut().display_string());
+    println!("{}", node.display_string());
 
     // Call recursively on the nodes children
-    for child in &node.borrow_mut().children {
-        print_ast(&Rc::clone(child), num_tabs + 1);
+    for child in &node.children {
+        print_ast(child, num_tabs + 1);
     }
 }
 
@@ -128,7 +103,7 @@ pub fn print_ast(node: &Rc<RefCell<ASTNode>>, num_tabs: i32) {
 // PARSER
 // -----------------------------------------------------------------
 
-pub fn parser(tokens: &Vec<Token>) -> Rc<RefCell<ASTNode>> {
+pub fn parser(tokens: &Vec<Token>) -> ASTNode {
     start_(tokens, &mut 0)
 }
 
@@ -137,47 +112,45 @@ pub fn parser(tokens: &Vec<Token>) -> Rc<RefCell<ASTNode>> {
 // GRAMMAR NON-TERMINAL FUNCTIONS
 // -----------------------------------------------------------------
 
-
 // start		: {globaldeclarations}
 // 			    ;
-fn start_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn start_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Create the root program node for this code file
-    let ast_root = new_node("program", None, None);
+    let mut ast_root = new_node("program", None, None);
 
     if tokens[0].name != TokenName::EOF {
         // If this was an empty file, the first (and only) token would be EOF,
         // in which case we would just return the program node. However, since this file
         // is non-empty, we can parse through it and create our AST:
 
-        // ast_root.borrow_mut().add_child(variabledeclaration_(tokens, current));
+        // ast_root.add_child(variabledeclaration_(tokens, current));
 
-        ast_root.borrow_mut().add_children(globaldeclarations_(tokens, current));
+        ast_root.add_children(globaldeclarations_(tokens, current));
     }
 
     return ast_root;
 }
-
 
 // literal     : INTLIT
 //             | STRLIT
 //             | TRUE
 //             | FALSE
 //             ;
-fn literal_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
     // Create AST leaf node for literal
-    let literal_node = new_node("literal",
+    let mut literal_node = new_node("literal",
                                                       Some(current_token.lexeme.clone()),
                                                       Some(current_token.line_num));
 
     // Update the literal node type to correspond to the token we see
     match current_token.name {
-        TokenName::INTLIT => {literal_node.borrow_mut().node_type = String::from("number");}
-        TokenName::STRLIT => {literal_node.borrow_mut().node_type = String::from("string");}
-        TokenName::TRUE => {literal_node.borrow_mut().node_type = String::from("true");}
-        TokenName::FALSE => {literal_node.borrow_mut().node_type = String::from("false");}
+        TokenName::INTLIT => {literal_node.node_type = String::from("number");}
+        TokenName::STRLIT => {literal_node.node_type = String::from("string");}
+        TokenName::TRUE => {literal_node.node_type = String::from("true");}
+        TokenName::FALSE => {literal_node.node_type = String::from("false");}
         _ => {
             throw_error(&format!("Syntax Error on line {}: literal must be an integer, string, \"true\", or \"false\"",
                         tokens[*current + 1].line_num));
@@ -195,19 +168,19 @@ fn literal_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 // type    	: BOOLEAN
 // 	        | INT
 // 	        ;
-fn type_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
     // Create AST leaf node for type
-    let type_node = new_node("type",
+    let mut type_node = new_node("type",
                                                    Some(current_token.lexeme.clone()),
                                                    Some(current_token.line_num));
 
     // Update the type node type to correspond to the token we see
     match current_token.name {
-        TokenName::INT => {type_node.borrow_mut().node_type = String::from("int");}
-        TokenName::BOOL => {type_node.borrow_mut().node_type = String::from("bool");}
+        TokenName::INT => {type_node.node_type = String::from("int");}
+        TokenName::BOOL => {type_node.node_type = String::from("bool");}
         _ => {
             throw_error(&format!("Syntax Error on line {}: type must be one of \"int\", \"bool\"",
             tokens[*current + 1].line_num));
@@ -224,7 +197,7 @@ fn type_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 
 // globaldeclarations		: [globaldeclaration]+
 // 						    ;
-fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -245,7 +218,7 @@ fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCe
 //                         | functiondeclaration
 //                         | mainfunctiondeclaration
 //                         ;
-fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -265,10 +238,10 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<AS
 
     } else if current_token.name == TokenName::INT || current_token.name == TokenName::BOOL {
         // We have a variable declaration
-        let glob_var_decl = variabledeclaration_(tokens, current);
+        let mut glob_var_decl = variabledeclaration_(tokens, current);
 
         // We have to rename the "varDecl" node "globVarDecl" to distinguish from a variable declaration inside a function
-        glob_var_decl.borrow_mut().node_type = String::from("globVarDecl");
+        glob_var_decl.node_type = String::from("globVarDecl");
 
         return glob_var_decl;
 
@@ -284,20 +257,20 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<AS
 
 // variabledeclaration     : type identifier SEMICOLON
 //                         ;
-fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
     // Create variable declaration node
-    let var_decl_node = new_node("varDecl",
+    let mut var_decl_node = new_node("varDecl",
                                                        None,
                                                        Some(current_token.line_num));
     
     // Add child for the variable type
-    var_decl_node.borrow_mut().add_child(type_(tokens, current));
+    var_decl_node.add_child(type_(tokens, current));
 
     // Add child for the variable identifier
-    var_decl_node.borrow_mut().add_child(identifier_(tokens, current));
+    var_decl_node.add_child(identifier_(tokens, current));
 
     // Check to see if current token is a semicolon - if not, throw syntax error
     current_token = &tokens[*current];
@@ -317,7 +290,7 @@ fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
 
 // identifier              : ID
 //                         ;
-fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -338,20 +311,20 @@ fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
 // functiondeclaration     : functionheader block
 //                         ;
-fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
     // Create function declaration node
-    let new_node = new_node("funcDecl",
+    let mut new_node = new_node("funcDecl",
                                              None,
                                          Some(current_token.line_num));
     
     // Add child through function header
-    new_node.borrow_mut().add_children(functionheader_(tokens, current));
+    new_node.add_children(functionheader_(tokens, current));
 
     // Add child for block
-    new_node.borrow_mut().add_child(block_(tokens, current));
+    new_node.add_child(block_(tokens, current));
 
     // Return function declaration node
     return new_node;
@@ -360,7 +333,7 @@ fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
 
 // functionheader          : FUNC functiondeclarator RETURNS [type | VOID]
 //                         ;
-fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -391,11 +364,11 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<A
     consume_token(current);
 
     // Create a node to hold the return value of the function
-    let returns_node = new_node("returns", None, None);
+    let mut returns_node = new_node("returns", None, None);
 
     current_token = &tokens[*current];
     if current_token.name == TokenName::VOID {
-        returns_node.borrow_mut().add_child(new_node("void",
+        returns_node.add_child(new_node("void",
                                                      Some(String::from("void")),
                                                      Some(current_token.line_num)));
         
@@ -404,7 +377,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<A
 
     } else {
         // Otherwise we should see a type
-        returns_node.borrow_mut().add_child(type_(tokens, current));
+        returns_node.add_child(type_(tokens, current));
     }
 
     // Add the return node to the list
@@ -417,7 +390,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<A
 
 // functiondeclarator      : identifier OPENPAR {formalparameterlist} CLOSEPAR
 //                         ;
-fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Create a vector to hold the AST nodes
     let mut node_vec = Vec::new();
 
@@ -435,10 +408,10 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCe
     consume_token(current);
 
     // Now we can start parsing the parameter list
-    let param_list = new_node("parameters", None, None);
+    let mut param_list = new_node("parameters", None, None);
     
     // Add one child for each parameter in the list
-    param_list.borrow_mut().add_children(formalparameterlist_(tokens, current));
+    param_list.add_children(formalparameterlist_(tokens, current));
 
     // Add param list to function declarator node
     node_vec.push(param_list);
@@ -460,7 +433,7 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCe
 
 // formalparameterlist     : formalparameter [COMMA formalparameter]*
 //                         ;
-fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -500,19 +473,19 @@ fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefC
 
 // formalparameter         : type identifier
 //                         ;
-fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
-    let param = new_node("parameter",
+    let mut param = new_node("parameter",
                                           None,
                                       Some(current_token.line_num));
 
     // Add child for parameter type
-    param.borrow_mut().add_child(type_(tokens, current));
+    param.add_child(type_(tokens, current));
 
     // Add child for parameter identifier
-    param.borrow_mut().add_child(identifier_(tokens, current));
+    param.add_child(identifier_(tokens, current));
 
     return param;
 }
@@ -520,12 +493,12 @@ fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTN
 
 // mainfunctiondeclaration : FUNC mainfunctiondeclarator RETURNS VOID block
 //                         ;
-fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
     // Create function declaration node
-    let main_decl_node = new_node("mainFuncDecl",
+    let mut main_decl_node = new_node("mainFuncDecl",
                                              None,
                                          Some(current_token.line_num));
 
@@ -539,10 +512,10 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
     consume_token(current);
     
     // Parse main function declarator
-    main_decl_node.borrow_mut().add_child(mainfunctiondeclarator_(tokens, current));
+    main_decl_node.add_child(mainfunctiondeclarator_(tokens, current));
 
     // Add "parameters" node, even though it doesn't take any params, just so it can have the same format as a regular funcDecl
-    main_decl_node.borrow_mut().add_child(new_node("parameters", None, None));
+    main_decl_node.add_child(new_node("parameters", None, None));
 
     // Next we should see the "returns" keyword
     current_token = &tokens[*current];
@@ -555,11 +528,11 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
     consume_token(current);
 
     // Create a node to hold the return value of the function
-    let returns_node = new_node("returns", None, None);
+    let mut returns_node = new_node("returns", None, None);
 
     current_token = &tokens[*current];
     if current_token.name == TokenName::VOID {
-        returns_node.borrow_mut().add_child(new_node("void",
+        returns_node.add_child(new_node("void",
                                                      Some(String::from("void")),
                                                      Some(current_token.line_num)));
         
@@ -572,10 +545,10 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
     }
 
     // Add returns node to main declaration node
-    main_decl_node.borrow_mut().add_child(returns_node);
+    main_decl_node.add_child(returns_node);
 
     // Add child for block
-    main_decl_node.borrow_mut().add_child(block_(tokens, current));
+    main_decl_node.add_child(block_(tokens, current));
 
     // Return function declaration node
     return main_decl_node;
@@ -584,7 +557,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
 
 // mainfunctiondeclarator  : MAIN OPENPAR CLOSEPAR
 //                         ;
-fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -615,11 +588,11 @@ fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCe
 
 // block                   : OPENBRACE {blockstatements} CLOSEBRACE
 //                         ;
-fn block_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
-    let block_node = new_node("block", None, Some(current_token.line_num));
+    let mut block_node = new_node("block", None, Some(current_token.line_num));
 
     // A block should always start with an open brace
     if current_token.name != TokenName::OPENBRACE {
@@ -631,7 +604,7 @@ fn block_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
     consume_token(current);
 
     // Add block statements as children to our block node
-    block_node.borrow_mut().add_children(blockstatements_(tokens, current));
+    block_node.add_children(blockstatements_(tokens, current));
 
     // A block should always end with a close brace
     current_token = &tokens[*current];
@@ -650,7 +623,7 @@ fn block_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 
 // blockstatements         : [blockstatement]+
 //                         ;
-fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -676,7 +649,7 @@ fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<
 // blockstatement          : variabledeclaration
 //                         | statement
 //                         ;
-fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -702,7 +675,7 @@ fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNo
 //                         | IF expression statement ELSE statement
 //                         | WHILE expression statement
 //                         ;
-fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -770,9 +743,9 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
                 return new_node("return", None, Some(current_token.line_num));
 
             } else {
-                let return_node = new_node("return", None, Some(current_token.line_num));
+                let mut return_node = new_node("return", None, Some(current_token.line_num));
 
-                return_node.borrow_mut().add_child(expression_(tokens, current));
+                return_node.add_child(expression_(tokens, current));
 
                 // Return statement must end with a semicolon
                 current_token = &tokens[*current];
@@ -806,27 +779,27 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
             current_token = &tokens[*current];
             if current_token.name != TokenName::ELSE {
                 // If there is no else, create the if node
-                let if_node = new_node("if", None, Some(if_line_num));
+                let mut if_node = new_node("if", None, Some(if_line_num));
 
                 // Add the expression and statement nodes
-                if_node.borrow_mut().add_child(if_expr_node);
-                if_node.borrow_mut().add_child(statement_node);
+                if_node.add_child(if_expr_node);
+                if_node.add_child(statement_node);
 
                 // Return if node
                 return if_node;
             } else {
                 // If there is an else, create an if-else node and continue parsing
-                let if_else_node = new_node("ifElse", None, Some(if_line_num));
+                let mut if_else_node = new_node("ifElse", None, Some(if_line_num));
 
                 // Add the expression and statement nodes
-                if_else_node.borrow_mut().add_child(if_expr_node);
-                if_else_node.borrow_mut().add_child(statement_node);
+                if_else_node.add_child(if_expr_node);
+                if_else_node.add_child(statement_node);
 
                 // Consume else token
                 consume_token(current);
 
                 // Add the else statement
-                if_else_node.borrow_mut().add_child(statement_(tokens, current));
+                if_else_node.add_child(statement_(tokens, current));
 
                 // Return if-else node
                 return if_else_node;
@@ -839,13 +812,13 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
             consume_token(current);
 
             // Create while node
-            let while_node = new_node("while", None, Some(current_token.line_num));
+            let mut while_node = new_node("while", None, Some(current_token.line_num));
 
             // Add the expression node
-            while_node.borrow_mut().add_child(expression_(tokens, current));
+            while_node.add_child(expression_(tokens, current));
 
             // Add the body of the loop
-            while_node.borrow_mut().add_child(statement_(tokens, current));
+            while_node.add_child(statement_(tokens, current));
 
             return while_node;
         }
@@ -865,7 +838,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> 
 // statementexpression     : assignment
 //                         | functioninvocation
 //                         ;
-fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get next token
     let token_2 = &tokens[*current + 1];
 
@@ -883,7 +856,7 @@ fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<
 //                         | OPENPAR expression CLOSEPAR
 //                         | functioninvocation
 //                         ;
-fn primary_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -920,7 +893,7 @@ fn primary_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
 // argumentlist            : expression
 //                         | argumentlist COMMA expression
 //                         ;
-fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<ASTNode>>> {
+fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -961,15 +934,15 @@ fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<Rc<RefCell<AST
 // functioninvocation      : identifier OPENPAR argumentlist CLOSEPAR
 //                         | identifier OPENPAR CLOSEPAR
 //                         ;
-fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
     // Create function invocation node
-    let func_inv_node = new_node("funcCall", None, Some(current_token.line_num));
+    let mut func_inv_node = new_node("funcCall", None, Some(current_token.line_num));
 
     // Add function identifier as child
-    func_inv_node.borrow_mut().add_child(identifier_(tokens, current));
+    func_inv_node.add_child(identifier_(tokens, current));
 
     // Next, we should see an open parenthesis
     current_token = &tokens[*current];
@@ -982,9 +955,9 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<A
     consume_token(current);
 
     // Add argument list
-    let arg_list = new_node("arguments", None, None);
-    arg_list.borrow_mut().add_children(argumentlist_(tokens, current));
-    func_inv_node.borrow_mut().add_child(arg_list);
+    let mut arg_list = new_node("arguments", None, None);
+    arg_list.add_children(argumentlist_(tokens, current));
+    func_inv_node.add_child(arg_list);
 
     // Finally, we should see an close parenthesis
     current_token = &tokens[*current];
@@ -1003,7 +976,7 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<A
 // postfixexpression       : primary
 //                         | identifier
 //                         ;
-fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1020,7 +993,7 @@ fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<AS
 //                         | NOT unaryexpression
 //                         | postfixexpression
 //                         ;
-fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1030,10 +1003,10 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTN
         consume_token(current);
 
         // Create unary minus node
-        let unary_minus_node = new_node("u-", None, Some(current_token.line_num));
+        let mut unary_minus_node = new_node("u-", None, Some(current_token.line_num));
         
         // Add RHS expression as child
-        unary_minus_node.borrow_mut().add_child(unaryexpression_(tokens, current));
+        unary_minus_node.add_child(unaryexpression_(tokens, current));
         
         // Return node
         return unary_minus_node;
@@ -1043,10 +1016,10 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTN
         consume_token(current);
 
         // Create unary not node
-        let unary_not_node = new_node("!", None, Some(current_token.line_num));
+        let mut unary_not_node = new_node("!", None, Some(current_token.line_num));
         
         // Add RHS expression as child
-        unary_not_node.borrow_mut().add_child(unaryexpression_(tokens, current));
+        unary_not_node.add_child(unaryexpression_(tokens, current));
         
         // Return node
         return unary_not_node;
@@ -1059,7 +1032,7 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTN
 
 // multiplicativeexpression: unaryexpression multiplicativerhs
 //                         ;
-fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = unaryexpression_(tokens, current);
 
@@ -1072,8 +1045,8 @@ fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<Ref
             return lhs;
         }
         // If there is a right hand side, rhs is a "<" or ">" or "<=" or ">=" node and the lhs should be the first child of it
-        Some(rhs) => {
-            rhs.borrow_mut().add_child_to_front(lhs);
+        Some(mut rhs) => {
+            rhs.add_child_to_front(lhs);
             return rhs;
         }
     }
@@ -1085,7 +1058,7 @@ fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<Ref
 //  						| MOD unaryexpression multiplicativerhs
 //  						| /* nothing */
 //   						;
-fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<ASTNode>>> {
+fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1097,7 +1070,7 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<Ref
         // Consume token
         consume_token(current);
 
-        let mult_node;
+        let mut mult_node;
 
         // Make correct kind of node
         if current_token.name == TokenName::MULT {
@@ -1117,13 +1090,13 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<Ref
         match possible_mult {
             // If there is no other rel, we can simply return the rhs
             None => {
-                mult_node.borrow_mut().add_child(rhs);
+                mult_node.add_child(rhs);
                 return Some(mult_node);
             }
             // If there is another mult, mult is a "*" or "/" or "%" node and the rhs should be the first child of it
-            Some(mult) => {
-                mult.borrow_mut().add_child_to_front(rhs);
-                mult_node.borrow_mut().add_child(mult);
+            Some(mut mult) => {
+                mult.add_child_to_front(rhs);
+                mult_node.add_child(mult);
                 return Some(mult_node);
             }
         }
@@ -1135,7 +1108,7 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<Ref
 
 // additiveexpression      : multiplicativeexpression additiverhs
 //                         ;
-fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = multiplicativeexpression_(tokens, current);
 
@@ -1148,8 +1121,8 @@ fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<A
             return lhs;
         }
         // If there is a right hand side, rhs is a "+" or "-" node and the lhs should be the first child of it
-        Some(rhs) => {
-            rhs.borrow_mut().add_child_to_front(lhs);
+        Some(mut rhs) => {
+            rhs.add_child_to_front(lhs);
             return rhs;
         }
     }
@@ -1160,7 +1133,7 @@ fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<A
 // 						    | MINUS multiplicativeexpression additiverhs
 // 						    | /* nothing */
 // 						    ;
-fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<ASTNode>>> {
+fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1169,7 +1142,7 @@ fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<A
         // Consume token
         consume_token(current);
 
-        let add_node;
+        let mut add_node;
 
         // Make correct kind of node
         if current_token.name == TokenName::PLUS {
@@ -1187,13 +1160,13 @@ fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<A
         match possible_eq {
             // If there is no other add, we can simply return the rhs
             None => {
-                add_node.borrow_mut().add_child(rhs);
+                add_node.add_child(rhs);
                 return Some(add_node);
             }
             // If there is another add, add is a "+" or "-" node and the rhs should be the first child of it
-            Some(add) => {
-                add.borrow_mut().add_child_to_front(rhs);
-                add_node.borrow_mut().add_child(add);
+            Some(mut add) => {
+                add.add_child_to_front(rhs);
+                add_node.add_child(add);
                 return Some(add_node);
             }
         }
@@ -1205,7 +1178,7 @@ fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<A
 
 // relationalexpression    : additiveexpression relationalrhs
 //                         ;
-fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = additiveexpression_(tokens, current);
 
@@ -1218,8 +1191,8 @@ fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell
             return lhs;
         }
         // If there is a right hand side, rhs is a "<" or ">" or "<=" or ">=" node and the lhs should be the first child of it
-        Some(rhs) => {
-            rhs.borrow_mut().add_child_to_front(lhs);
+        Some(mut rhs) => {
+            rhs.add_child_to_front(lhs);
             return rhs;
         }
     }
@@ -1232,7 +1205,7 @@ fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell
 // 						    | GEQ additiveexpression relationalrhs
 // 						    | /* nothing */
 // 						    ;
-fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<ASTNode>>> {
+fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1244,7 +1217,7 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell
         // Consume token
         consume_token(current);
 
-        let rel_node;
+        let mut rel_node;
 
         // Make correct kind of node
         if current_token.name == TokenName::LT {
@@ -1266,13 +1239,13 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell
         match possible_rel {
             // If there is no other rel, we can simply return the rhs
             None => {
-                rel_node.borrow_mut().add_child(rhs);
+                rel_node.add_child(rhs);
                 return Some(rel_node);
             }
             // If there is another rel, rel is a "<" or ">" or "<=" or ">=" node and the rhs should be the first child of it
-            Some(rel) => {
-                rel.borrow_mut().add_child_to_front(rhs);
-                rel_node.borrow_mut().add_child(rel);
+            Some(mut rel) => {
+                rel.add_child_to_front(rhs);
+                rel_node.add_child(rel);
                 return Some(rel_node);
             }
         }
@@ -1284,7 +1257,7 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell
 
 // equalityexpression      : relationalexpression equalityrhs
 //                         ;
-fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = relationalexpression_(tokens, current);
 
@@ -1297,8 +1270,8 @@ fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<A
             return lhs;
         }
         // If there is a right hand side, rhs is a "==" or "!=" node and the lhs should be the first child of it
-        Some(rhs) => {
-            rhs.borrow_mut().add_child_to_front(lhs);
+        Some(mut rhs) => {
+            rhs.add_child_to_front(lhs);
             return rhs;
         }
     }
@@ -1309,7 +1282,7 @@ fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<A
 // 						    | NEQ relationalexpression equalityrhs
 // 						    | /* nothing */
 // 						    ;
-fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<ASTNode>>> {
+fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1318,7 +1291,7 @@ fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<A
         // Consume token
         consume_token(current);
 
-        let eq_node;
+        let mut eq_node;
 
         // Make correct kind of node
         if current_token.name == TokenName::EQ {
@@ -1336,13 +1309,13 @@ fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<A
         match possible_eq {
             // If there is no other eq, we can simply return the rhs
             None => {
-                eq_node.borrow_mut().add_child(rhs);
+                eq_node.add_child(rhs);
                 return Some(eq_node);
             }
             // If there is another eq, eq is a "==" or "!=" node and the rhs should be the first child of it
-            Some(eq) => {
-                eq.borrow_mut().add_child_to_front(rhs);
-                eq_node.borrow_mut().add_child(eq);
+            Some(mut eq) => {
+                eq.add_child_to_front(rhs);
+                eq_node.add_child(eq);
                 return Some(eq_node);
             }
         }
@@ -1354,7 +1327,7 @@ fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<A
 
 // conditionalandexpression: equalityexpression conditionalandrhs
 //                         ;
-fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = equalityexpression_(tokens, current);
 
@@ -1367,8 +1340,8 @@ fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<Ref
             return lhs;
         }
         // If there is a right hand side, rhs is a "&&" node and the lhs should be the first child of it
-        Some(rhs) => {
-            rhs.borrow_mut().add_child_to_front(lhs);
+        Some(mut rhs) => {
+            rhs.add_child_to_front(lhs);
             return rhs;
         }
     }
@@ -1377,7 +1350,7 @@ fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<Ref
 
 // conditionalandrhs		: {AND equalityexpression conditionalandrhs}
 // 						    ;
-fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<ASTNode>>> {
+fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1387,7 +1360,7 @@ fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<Ref
         consume_token(current);
 
         // Create an and node
-        let and_node = new_node("&&", None, Some(current_token.line_num));
+        let mut and_node = new_node("&&", None, Some(current_token.line_num));
 
         // get right hand side of AND
         let rhs = equalityexpression_(tokens, current);
@@ -1398,13 +1371,13 @@ fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<Ref
         match possible_and {
             // If there is no other and, we can simply return the rhs
             None => {
-                and_node.borrow_mut().add_child(rhs);
+                and_node.add_child(rhs);
                 return Some(and_node);
             }
             // If there is another or, or is a "||" node and the rhs should be the first child of it
-            Some(and) => {
-                and.borrow_mut().add_child_to_front(rhs);
-                and_node.borrow_mut().add_child(and);
+            Some(mut and) => {
+                and.add_child_to_front(rhs);
+                and_node.add_child(and);
                 return Some(and_node);
             }
         }
@@ -1416,7 +1389,7 @@ fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<Ref
 
 // conditionalorexpression : conditionalandexpression conditionalorrhs
 //                         ;
-fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = conditionalandexpression_(tokens, current);
 
@@ -1429,8 +1402,8 @@ fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
             return lhs;
         }
         // If there is a right hand side, rhs is a "||" node and the lhs should be the first child of it
-        Some(rhs) => {
-            rhs.borrow_mut().add_child_to_front(lhs);
+        Some(mut rhs) => {
+            rhs.add_child_to_front(lhs);
             return rhs;
         }
     }
@@ -1439,7 +1412,7 @@ fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefC
 
 // conditionalorrhs		: {OR conditionalandexpression conditionalorrhs}
 //                      ;
-fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefCell<ASTNode>>> {
+fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1449,7 +1422,7 @@ fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefC
         consume_token(current);
 
         // Create an or node
-        let or_node = new_node("||", None, Some(current_token.line_num));
+        let mut or_node = new_node("||", None, Some(current_token.line_num));
 
         // get right hand side of OR
         let rhs = conditionalandexpression_(tokens, current);
@@ -1460,13 +1433,13 @@ fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefC
         match possible_or {
             // If there is no other or, we can simply return the rhs
             None => {
-                or_node.borrow_mut().add_child(rhs);
+                or_node.add_child(rhs);
                 return Some(or_node);
             }
             // If there is another or, or is a "||" node and the rhs should be the first child of it
-            Some(or) => {
-                or.borrow_mut().add_child_to_front(rhs);
-                or_node.borrow_mut().add_child(or);
+            Some(mut or) => {
+                or.add_child_to_front(rhs);
+                or_node.add_child(or);
                 return Some(or_node);
             }
         }
@@ -1479,7 +1452,7 @@ fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<Rc<RefC
 // assignmentexpression    : conditionalorexpression
 //                         | assignment
 //                         ;
-fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // The second token of an expression is =, +=, -=, etc...
     let token_2 = &tokens[*current + 1];
 
@@ -1508,7 +1481,7 @@ fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell
 // 						   : identifier MODEQ INTLIT
 // 						   : identifier POWEREQ INTLIT
 //                         ;
-fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse identifier on LHS of assignment
     let id_node = identifier_(tokens, current);
 
@@ -1518,14 +1491,14 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
     match assign_token.name {
         TokenName::ASSIGN => {
             // Create assignment node and attach the LHS id node
-            let assign_node = new_node("=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume assignment token
             consume_token(current);
 
             // Attach the RHS node
-            assign_node.borrow_mut().add_child(assignmentexpression_(tokens, current));
+            assign_node.add_child(assignmentexpression_(tokens, current));
 
             // Return the assignment node
             return assign_node;
@@ -1533,8 +1506,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
         TokenName::PLUSEQ => {
             // Create plus-equal node and attach the LHS id node
-            let assign_node = new_node("+=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("+=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume plus-equal token
             consume_token(current);
@@ -1547,7 +1520,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
             }
 
             // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.borrow_mut().add_child(literal_(tokens, current));
+            assign_node.add_child(literal_(tokens, current));
 
             // Return the plus-equal node
             return assign_node;
@@ -1555,8 +1528,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
         TokenName::MINUSEQ => {
             // Create minus-equal node and attach the LHS id node
-            let assign_node = new_node("-=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("-=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume minus-equal token
             consume_token(current);
@@ -1569,7 +1542,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
             }
 
             // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.borrow_mut().add_child(literal_(tokens, current));
+            assign_node.add_child(literal_(tokens, current));
 
             // Return the minus-equal node
             return assign_node;
@@ -1577,8 +1550,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
         TokenName::MULTEQ => {
             // Create multiply-equal node and attach the LHS id node
-            let assign_node = new_node("*=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("*=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume multiply-equal token
             consume_token(current);
@@ -1591,7 +1564,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
             }
 
             // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.borrow_mut().add_child(literal_(tokens, current));
+            assign_node.add_child(literal_(tokens, current));
 
             // Return the multiply-equal node
             return assign_node;
@@ -1599,8 +1572,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
         TokenName::DIVEQ => {
             // Create divide-equal node and attach the LHS id node
-            let assign_node = new_node("/=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("/=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume divide-equal token
             consume_token(current);
@@ -1613,7 +1586,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
             }
 
             // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.borrow_mut().add_child(literal_(tokens, current));
+            assign_node.add_child(literal_(tokens, current));
 
             // Return the divide-equal node
             return assign_node;
@@ -1621,8 +1594,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
         TokenName::MODEQ => {
             // Create modulus-equal node and attach the LHS id node
-            let assign_node = new_node("%=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("%=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume modulus-equal token
             consume_token(current);
@@ -1635,7 +1608,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
             }
 
             // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.borrow_mut().add_child(literal_(tokens, current));
+            assign_node.add_child(literal_(tokens, current));
 
             // Return the Modulus-equal node
             return assign_node;
@@ -1643,8 +1616,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
         TokenName::POWEREQ => {
             // Create power-equal node and attach the LHS id node
-            let assign_node = new_node("^=", None, Some(assign_token.line_num));
-            assign_node.borrow_mut().add_child(id_node);
+            let mut assign_node = new_node("^=", None, Some(assign_token.line_num));
+            assign_node.add_child(id_node);
 
             // Consume power-equal token
             consume_token(current);
@@ -1657,7 +1630,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
             }
 
             // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.borrow_mut().add_child(literal_(tokens, current));
+            assign_node.add_child(literal_(tokens, current));
 
             // Return the power-equal node
             return assign_node;
@@ -1675,7 +1648,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>>
 
 // expression              : assignmentexpression
 //                         ;
-fn expression_(tokens: &Vec<Token>, current: &mut usize) -> Rc<RefCell<ASTNode>> {
+fn expression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     return assignmentexpression_(tokens, current);
 }
 
