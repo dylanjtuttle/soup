@@ -95,10 +95,6 @@ impl ASTNode {
     }
 }
 
-fn new_node(node_type: &str, attr: Option<String>, line_num: Option<i32>) -> ASTNode {
-    ASTNode::new(node_type, attr, line_num)
-}
-
 fn print_node(node: &ASTNode, num_tabs: i32) {
     // Add the correct indentation by adding num_tabs tabs
     for _i in 0..num_tabs {
@@ -145,7 +141,7 @@ pub fn parser(tokens: &Vec<Token>) -> ASTNode {
 // 			    ;
 fn start_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Create the root program node for this code file
-    let mut ast_root = new_node("program", None, None);
+    let mut ast_root = ASTNode::new("program", None, None);
 
     if tokens[0].name != TokenName::EOF {
         // If this was an empty file, the first (and only) token would be EOF,
@@ -170,7 +166,7 @@ fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let current_token = &tokens[*current];
 
     // Create AST leaf node for literal
-    let mut literal_node = new_node("literal",
+    let mut literal_node = ASTNode::new("literal",
                                                       Some(current_token.lexeme.clone()),
                                                       Some(current_token.line_num));
 
@@ -202,7 +198,7 @@ fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let current_token = &tokens[*current];
 
     // Create AST leaf node for type
-    let mut type_node = new_node("type",
+    let mut type_node = ASTNode::new("type",
                                                    Some(current_token.lexeme.clone()),
                                                    Some(current_token.line_num));
 
@@ -280,7 +276,7 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     }
 
     // Return a dummy node, this code is unreachable since throw_error() exits the program
-    return new_node("globDecl", None, None);
+    return ASTNode::new("globDecl", None, None);
 }
 
 
@@ -291,7 +287,7 @@ fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let mut current_token = &tokens[*current];
 
     // Create variable declaration node
-    let mut var_decl_node = new_node("varDecl",
+    let mut var_decl_node = ASTNode::new("varDecl",
                                                        None,
                                                        Some(current_token.line_num));
     
@@ -332,7 +328,7 @@ fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     consume_token(current);
 
     // Return an identifier AST node corresponding to the ID token
-    return new_node("id",
+    return ASTNode::new("id",
                     Some(current_token.lexeme.clone()),
                     Some(current_token.line_num));
 }
@@ -345,7 +341,7 @@ fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let current_token = &tokens[*current];
 
     // Create function declaration node
-    let mut new_node = new_node("funcDecl",
+    let mut new_node = ASTNode::new("funcDecl",
                                              None,
                                          Some(current_token.line_num));
     
@@ -393,11 +389,11 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     consume_token(current);
 
     // Create a node to hold the return value of the function
-    let mut returns_node = new_node("returns", None, None);
+    let mut returns_node = ASTNode::new("returns", None, None);
 
     current_token = &tokens[*current];
     if current_token.name == TokenName::VOID {
-        returns_node.add_child(new_node("void",
+        returns_node.add_child(ASTNode::new("void",
                                                      Some(String::from("void")),
                                                      Some(current_token.line_num)));
         
@@ -437,7 +433,7 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode>
     consume_token(current);
 
     // Now we can start parsing the parameter list
-    let mut param_list = new_node("parameters", None, None);
+    let mut param_list = ASTNode::new("parameters", None, None);
     
     // Add one child for each parameter in the list
     param_list.add_children(formalparameterlist_(tokens, current));
@@ -506,7 +502,7 @@ fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
-    let mut param = new_node("parameter",
+    let mut param = ASTNode::new("parameter",
                                           None,
                                       Some(current_token.line_num));
 
@@ -527,7 +523,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
     let mut current_token = &tokens[*current];
 
     // Create function declaration node
-    let mut main_decl_node = new_node("mainFuncDecl",
+    let mut main_decl_node = ASTNode::new("mainFuncDecl",
                                              None,
                                          Some(current_token.line_num));
 
@@ -544,7 +540,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
     main_decl_node.add_child(mainfunctiondeclarator_(tokens, current));
 
     // Add "parameters" node, even though it doesn't take any params, just so it can have the same format as a regular funcDecl
-    main_decl_node.add_child(new_node("parameters", None, None));
+    main_decl_node.add_child(ASTNode::new("parameters", None, None));
 
     // Next we should see the "returns" keyword
     current_token = &tokens[*current];
@@ -557,11 +553,11 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
     consume_token(current);
 
     // Create a node to hold the return value of the function
-    let mut returns_node = new_node("returns", None, None);
+    let mut returns_node = ASTNode::new("returns", None, None);
 
     current_token = &tokens[*current];
     if current_token.name == TokenName::VOID {
-        returns_node.add_child(new_node("void",
+        returns_node.add_child(ASTNode::new("void",
                                                      Some(String::from("void")),
                                                      Some(current_token.line_num)));
         
@@ -611,7 +607,7 @@ fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode 
     consume_token(current);
     current_token = &tokens[*current];
 
-    return new_node("id", Some(String::from("main")), Some(current_token.line_num));
+    return ASTNode::new("id", Some(String::from("main")), Some(current_token.line_num));
 }
 
 
@@ -621,7 +617,7 @@ fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
-    let mut block_node = new_node("block", None, Some(current_token.line_num));
+    let mut block_node = ASTNode::new("block", None, Some(current_token.line_num));
 
     // A block should always start with an open brace
     if current_token.name != TokenName::OPENBRACE {
@@ -718,7 +714,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             consume_token(current);
             current_token = &tokens[*current];
 
-            return new_node("voidStmt", None, Some(current_token.line_num));
+            return ASTNode::new("voidStmt", None, Some(current_token.line_num));
         }
 
         // If the statement is a statement expression (which can be either an assignment or a function call),
@@ -755,7 +751,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             // Otherwise, consume semicolon token
             consume_token(current);
 
-            return new_node("break", None, Some(tokens[*current - 2].line_num));
+            return ASTNode::new("break", None, Some(tokens[*current - 2].line_num));
         }
 
         // If the statement is a return statement, the first token we see is a RETURN token
@@ -769,10 +765,10 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
                 consume_token(current);
                 current_token = &tokens[*current];
 
-                return new_node("return", None, Some(current_token.line_num));
+                return ASTNode::new("return", None, Some(current_token.line_num));
 
             } else {
-                let mut return_node = new_node("return", None, Some(current_token.line_num));
+                let mut return_node = ASTNode::new("return", None, Some(current_token.line_num));
 
                 return_node.add_child(expression_(tokens, current));
 
@@ -808,7 +804,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             current_token = &tokens[*current];
             if current_token.name != TokenName::ELSE {
                 // If there is no else, create the if node
-                let mut if_node = new_node("if", None, Some(if_line_num));
+                let mut if_node = ASTNode::new("if", None, Some(if_line_num));
 
                 // Add the expression and statement nodes
                 if_node.add_child(if_expr_node);
@@ -818,7 +814,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
                 return if_node;
             } else {
                 // If there is an else, create an if-else node and continue parsing
-                let mut if_else_node = new_node("ifElse", None, Some(if_line_num));
+                let mut if_else_node = ASTNode::new("ifElse", None, Some(if_line_num));
 
                 // Add the expression and statement nodes
                 if_else_node.add_child(if_expr_node);
@@ -841,7 +837,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             consume_token(current);
 
             // Create while node
-            let mut while_node = new_node("while", None, Some(current_token.line_num));
+            let mut while_node = ASTNode::new("while", None, Some(current_token.line_num));
 
             // Add the expression node
             while_node.add_child(expression_(tokens, current));
@@ -858,7 +854,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
                         current_token.line_num));
             
             // Return dummy node to avoid the compiler getting angry with me
-            return new_node("statement", None, None);
+            return ASTNode::new("statement", None, None);
         }
     }
 }
@@ -968,7 +964,7 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let mut current_token = &tokens[*current];
 
     // Create function invocation node
-    let mut func_inv_node = new_node("funcCall", None, Some(current_token.line_num));
+    let mut func_inv_node = ASTNode::new("funcCall", None, Some(current_token.line_num));
 
     // Add function identifier as child
     func_inv_node.add_child(identifier_(tokens, current));
@@ -984,7 +980,7 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     consume_token(current);
 
     // Add argument list
-    let mut arg_list = new_node("arguments", None, None);
+    let mut arg_list = ASTNode::new("arguments", None, None);
     arg_list.add_children(argumentlist_(tokens, current));
     func_inv_node.add_child(arg_list);
 
@@ -1032,7 +1028,7 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         consume_token(current);
 
         // Create unary minus node
-        let mut unary_minus_node = new_node("u-", None, Some(current_token.line_num));
+        let mut unary_minus_node = ASTNode::new("u-", None, Some(current_token.line_num));
         
         // Add RHS expression as child
         unary_minus_node.add_child(unaryexpression_(tokens, current));
@@ -1045,7 +1041,7 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         consume_token(current);
 
         // Create unary not node
-        let mut unary_not_node = new_node("!", None, Some(current_token.line_num));
+        let mut unary_not_node = ASTNode::new("!", None, Some(current_token.line_num));
         
         // Add RHS expression as child
         unary_not_node.add_child(unaryexpression_(tokens, current));
@@ -1102,11 +1098,11 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
 
         // Make correct kind of node
         if current_token.name == TokenName::MULT {
-            mult_node = new_node("*", None, Some(current_token.line_num));
+            mult_node = ASTNode::new("*", None, Some(current_token.line_num));
         } else if current_token.name == TokenName::DIV {
-            mult_node = new_node("/", None, Some(current_token.line_num));
+            mult_node = ASTNode::new("/", None, Some(current_token.line_num));
         } else {
-            mult_node = new_node("%", None, Some(current_token.line_num));
+            mult_node = ASTNode::new("%", None, Some(current_token.line_num));
         }
 
         // get right hand side of rel
@@ -1174,9 +1170,9 @@ fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
 
         // Make correct kind of node
         if current_token.name == TokenName::PLUS {
-            add_node = new_node("+", None, Some(current_token.line_num));
+            add_node = ASTNode::new("+", None, Some(current_token.line_num));
         } else {
-            add_node = new_node("-", None, Some(current_token.line_num));
+            add_node = ASTNode::new("-", None, Some(current_token.line_num));
         }
 
         // get right hand side of add
@@ -1249,13 +1245,13 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
 
         // Make correct kind of node
         if current_token.name == TokenName::LT {
-            rel_node = new_node("<", None, Some(current_token.line_num));
+            rel_node = ASTNode::new("<", None, Some(current_token.line_num));
         } else if current_token.name == TokenName::GT {
-            rel_node = new_node(">", None, Some(current_token.line_num));
+            rel_node = ASTNode::new(">", None, Some(current_token.line_num));
         } else if current_token.name == TokenName::LEQ {
-            rel_node = new_node("<=", None, Some(current_token.line_num));
+            rel_node = ASTNode::new("<=", None, Some(current_token.line_num));
         } else {
-            rel_node = new_node(">=", None, Some(current_token.line_num));
+            rel_node = ASTNode::new(">=", None, Some(current_token.line_num));
         }
 
         // get right hand side of rel
@@ -1323,9 +1319,9 @@ fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
 
         // Make correct kind of node
         if current_token.name == TokenName::EQ {
-            eq_node = new_node("==", None, Some(current_token.line_num));
+            eq_node = ASTNode::new("==", None, Some(current_token.line_num));
         } else {
-            eq_node = new_node("!=", None, Some(current_token.line_num));
+            eq_node = ASTNode::new("!=", None, Some(current_token.line_num));
         }
 
         // get right hand side of eq
@@ -1388,7 +1384,7 @@ fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
         consume_token(current);
 
         // Create an and node
-        let mut and_node = new_node("&&", None, Some(current_token.line_num));
+        let mut and_node = ASTNode::new("&&", None, Some(current_token.line_num));
 
         // get right hand side of AND
         let rhs = equalityexpression_(tokens, current);
@@ -1450,7 +1446,7 @@ fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode
         consume_token(current);
 
         // Create an or node
-        let mut or_node = new_node("||", None, Some(current_token.line_num));
+        let mut or_node = ASTNode::new("||", None, Some(current_token.line_num));
 
         // get right hand side of OR
         let rhs = conditionalandexpression_(tokens, current);
@@ -1518,7 +1514,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     match assign_token.name {
         TokenName::ASSIGN => {
             // Create assignment node and attach the LHS id node
-            let mut assign_node = new_node("=", None, Some(assign_token.line_num));
+            let mut assign_node = ASTNode::new("=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
 
             // Consume assignment token
@@ -1533,7 +1529,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         TokenName::PLUSEQ => {
             // Create plus-equal node and attach the LHS id node
-            let mut assign_node = new_node("+=", None, Some(assign_token.line_num));
+            let mut assign_node = ASTNode::new("+=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
 
             // Consume plus-equal token
@@ -1555,7 +1551,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         TokenName::MINUSEQ => {
             // Create minus-equal node and attach the LHS id node
-            let mut assign_node = new_node("-=", None, Some(assign_token.line_num));
+            let mut assign_node = ASTNode::new("-=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
 
             // Consume minus-equal token
@@ -1577,7 +1573,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         TokenName::MULTEQ => {
             // Create multiply-equal node and attach the LHS id node
-            let mut assign_node = new_node("*=", None, Some(assign_token.line_num));
+            let mut assign_node = ASTNode::new("*=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
 
             // Consume multiply-equal token
@@ -1599,7 +1595,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         TokenName::DIVEQ => {
             // Create divide-equal node and attach the LHS id node
-            let mut assign_node = new_node("/=", None, Some(assign_token.line_num));
+            let mut assign_node = ASTNode::new("/=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
 
             // Consume divide-equal token
@@ -1621,7 +1617,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         TokenName::MODEQ => {
             // Create modulus-equal node and attach the LHS id node
-            let mut assign_node = new_node("%=", None, Some(assign_token.line_num));
+            let mut assign_node = ASTNode::new("%=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
 
             // Consume modulus-equal token
@@ -1645,7 +1641,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             throw_error(&format!("Syntax Error on line {}: Invalid assignment statement, must be one of =, +=, -=, *=, /=, %=, or ^=",
                         assign_token.line_num));
             
-            return new_node("assignment", None, None);
+            return ASTNode::new("assignment", None, None);
         }
     }
 }
