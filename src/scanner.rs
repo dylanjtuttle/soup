@@ -38,8 +38,6 @@ pub enum TokenName {
     DIVEQ,
     MOD,
     MODEQ,
-    POWER,
-    POWEREQ,
     LT,
     GT,
     LEQ,
@@ -229,26 +227,6 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     // Update token information
                     token.name = TokenName::MODEQ;
                     token.lexeme = String::from("%=");
-                    
-                    // Skip the next char, since it is a part of our current token
-                    i += 1;
-                }
-
-                // Push the token into the vector of tokens
-                tokens.push(token);
-
-                // Move along to the next char
-                i += 1;
-            }
-            '^' => {
-                // Initialize a 'to the power of' token
-                let mut token = Token {name: TokenName::POWER, lexeme: String::from("^"), line_num: line_num};
-
-                // Check to see if token is '%=', not just '%'
-                if chars[i + 1].char_val == '=' {
-                    // Update token information
-                    token.name = TokenName::POWEREQ;
-                    token.lexeme = String::from("^=");
                     
                     // Skip the next char, since it is a part of our current token
                     i += 1;

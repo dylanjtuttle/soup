@@ -21,7 +21,7 @@ impl ASTNode {
             children: vec![],
         };
     }
-    
+
 
     pub fn add_child(&mut self, new_node: ASTNode) {
         self.children.push(new_node);
@@ -1065,8 +1065,7 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
     // Either we see an mult token, or we return nothing
     if current_token.name == TokenName::MULT ||
        current_token.name == TokenName::DIV ||
-       current_token.name == TokenName::MOD ||
-       current_token.name == TokenName::POWER {
+       current_token.name == TokenName::MOD {
         // Consume token
         consume_token(current);
 
@@ -1461,8 +1460,7 @@ fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
        token_2.name == TokenName::MINUSEQ ||
        token_2.name == TokenName::MULTEQ ||
        token_2.name == TokenName::DIVEQ ||
-       token_2.name == TokenName::MODEQ ||
-       token_2.name == TokenName::POWEREQ {
+       token_2.name == TokenName::MODEQ {
         // We have an assignment
         return assignment_(tokens, current);
 
@@ -1611,28 +1609,6 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             assign_node.add_child(literal_(tokens, current));
 
             // Return the Modulus-equal node
-            return assign_node;
-        }
-
-        TokenName::POWEREQ => {
-            // Create power-equal node and attach the LHS id node
-            let mut assign_node = new_node("^=", None, Some(assign_token.line_num));
-            assign_node.add_child(id_node);
-
-            // Consume power-equal token
-            consume_token(current);
-            let current_token = &tokens[*current];
-
-            // Power-equal must be followed by an integer literal
-            if current_token.name != TokenName::INTLIT {
-                throw_error(&format!("Syntax Error on line {}: ^= statement must be followed by an integer literal",
-                            current_token.line_num));
-            }
-
-            // Otherwise, now that we know this token is an integer literal, we can call literal_() and attach the node
-            assign_node.add_child(literal_(tokens, current));
-
-            // Return the power-equal node
             return assign_node;
         }
 
