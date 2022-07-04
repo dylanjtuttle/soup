@@ -77,7 +77,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
         // Let's check our cases:
 
         match ch {
-            ' ' | '\t' | '\n' => {
+            ' ' | '\t' | '\n' | '\r' => {
                 // Ignore whitespace
                 i += 1;
             }
@@ -598,7 +598,7 @@ fn is_reserved(actual: Vec<char>, reserved: &str) -> bool {
 
 // Returns true if a character is in a..z, A..Z, or is an underscore, and false otherwise
 fn is_id_char(id_char: char) -> bool {
-    (id_char >= 'a' && id_char <= 'z') || (id_char >= 'A' && id_char <= 'Z') || (id_char == '_')
+    (id_char >= 'a' && id_char <= 'z') || (id_char >= 'A' && id_char <= 'Z') || (id_char >= '0' && id_char <= '9') || (id_char == '_')
 }
 
 // Returns true if a character is in 0..9

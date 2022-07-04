@@ -1,7 +1,7 @@
 // file to test scanner
 
 // Identifiers
-_ a b test identifier _return return_
+_ a b test identifier _return return_ id_1 i2d 3id
 
 // String literals
 "this is a string literal\n"

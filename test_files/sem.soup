@@ -2,6 +2,6 @@ func main() returns void {
     ;
 }
 
-func test_func(int param_one, bool param_two) returns void {
+func test_func(int param_1, bool param_2) returns void {
     ;
 }

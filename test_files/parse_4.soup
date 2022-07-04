@@ -1,20 +1,20 @@
 // Test function calls
 
 func main() returns void {
-    func_one();
+    func_1();
 
-    func_two(1);
+    func_2(1);
 
-    func_three(arg, 1 + 1);
+    func_3(arg, 1 + 1);
 
-    func_four(arg_one += 1, arg_two == 1);
+    func_4(arg_one += 1, arg_two == 1);
 
-    func_five(
+    func_5(
         1,
         2,
         true,
         false
     );
 
-    func_six("test string\n");
+    func_6("test string\n");
 }
