@@ -1006,10 +1006,18 @@ fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let current_token = &tokens[*current];
 
     // A postfix expression can either be a primary or an identifier
-    if current_token.name == TokenName::ID {
-        return identifier_(tokens, current);
-    } else {
+    // A primary can be a literal (first token is INTLIT, STRLIT, TRUE, or FALSE),
+    // an expression surrounded by parentheses (first token is OPENPAR),
+    // or a function invocation (second token is OPENPAR)
+    if current_token.name == TokenName::INTLIT ||
+    current_token.name == TokenName::STRLIT ||
+    current_token.name == TokenName::TRUE ||
+    current_token.name == TokenName::FALSE ||
+    current_token.name == TokenName::OPENPAR ||
+    tokens[*current + 1].name == TokenName::OPENPAR {
         return primary_(tokens, current);
+    } else {
+        return identifier_(tokens, current);
     }
 }
 
