@@ -148,8 +148,6 @@ fn start_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         // in which case we would just return the program node. However, since this file
         // is non-empty, we can parse through it and create our AST:
 
-        // ast_root.add_child(variabledeclaration_(tokens, current));
-
         ast_root.add_children(globaldeclarations_(tokens, current));
     }
 
