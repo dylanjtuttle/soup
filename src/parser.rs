@@ -931,7 +931,9 @@ fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     }
 
     // Otherwise, we have at least one argument that we need to parse
-    arg_list.push(expression_(tokens, current));
+    let mut arg = ASTNode::new("argument", None, None);
+    arg.add_child(expression_(tokens, current));
+    arg_list.push(arg);
 
     // Loop through more parameters until we reach the close parenthesis
     current_token = &tokens[*current];
@@ -941,7 +943,9 @@ fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
         if current_token.name == TokenName::COMMA {
             // Consume comma token and then parse the following parameter
             consume_token(current);
-            arg_list.push(expression_(tokens, current));
+            let mut arg = ASTNode::new("argument", None, None);
+            arg.add_child(expression_(tokens, current));
+            arg_list.push(arg);
 
             // Update current token
             current_token = &tokens[*current];
