@@ -22,11 +22,17 @@ impl ScopeStack {
         self.stack.last_mut()
     }
 
-    // Push a new scope to the top of the scope stack
-    fn push(&mut self, new_scope: HashMap<String, Symbol>) {
-        self.stack.push(new_scope);
+    // Open up a new scope by creating a new symbol table and pushing it to the top of the scope stack
+    fn open_scope(&mut self) {
+        self.stack.push(HashMap::new());
     }
 
+    // Close the topmost scope by popping it and allowing it to go out of (this function's) scope
+    fn close_scope(&mut self) {
+        _ = self.stack.pop();
+    }
+
+    // Insert a new symbol into the topmost scope of the scope stack
     fn insert_symbol(&mut self, name: String, new_symbol: Symbol) {
         match self.peek() {
             None => {
@@ -38,7 +44,8 @@ impl ScopeStack {
         };
     }
 
-    fn find_symbol(&mut self, search_name: &str) -> Option<&Symbol> {
+    // Attempt to find a symbol somewhere in the scope stack
+    fn find_symbol(&self, search_name: &str) -> Option<&Symbol> {
         // Iterate backwards through the scope stack (i.e. starting at the top scope and moving downwards)
         for symbol_table in self.stack.iter().rev() {
 
@@ -53,7 +60,32 @@ impl ScopeStack {
         }
 
         // Otherwise, we weren't able to find a symbol with the given name, so return None
-        return None;
+        None
+    }
+
+    // Attempt to find a symbol only in the current topmost scope
+    fn find_in_scope(&mut self, search_name: &str) -> Option<&Symbol> {
+        match self.peek() {
+            // If the scope stack is empty, we obviously won't be able to find the symbol
+            None => {None}
+            Some(symbol_table) => {
+                // Search through each entry in the symbol table for the given name
+                for (name, symbol) in symbol_table {
+                    // If we find a symbol with that name, return a reference to it
+                    if name == search_name {
+                        return Some(symbol);
+                    }
+                }
+
+                // Otherwise, we weren't able to find a symbol with the given name, so return None
+                None
+            }
+        }
+    }
+
+    // Return the level of the scope (the length of the list)
+    fn scope_level(&self) -> usize {
+        self.stack.len()
     }
 }
 
@@ -97,23 +129,20 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // level 2 - global
     // level 3 - function
     let mut scope_stack = ScopeStack::new();
-    
-    // Then create the first symbol table, for the runtime library
-    let mut runtime_sym = HashMap::new();
+
+    // Open a new scope for the runtime library
+    scope_stack.open_scope();
 
     // Add a symbol for everything in the runtime library
-    runtime_sym.insert(String::from("getchar"), new_symbol(String::from("getchar"), String::from("f()"), String::from("int")));
-    runtime_sym.insert(String::from("halt"), new_symbol(String::from("halt"), String::from("f()"), String::from("void")));
-    runtime_sym.insert(String::from("printbool"), new_symbol(String::from("printbool"), String::from("f(bool)"), String::from("void")));
-    runtime_sym.insert(String::from("printchar"), new_symbol(String::from("printchar"), String::from("f(int)"), String::from("void")));
-    runtime_sym.insert(String::from("printint"), new_symbol(String::from("printint"), String::from("f(int)"), String::from("void")));
-    runtime_sym.insert(String::from("printstr"), new_symbol(String::from("printstr"), String::from("f(string)"), String::from("void")));
+    scope_stack.insert_symbol(String::from("getchar"), Symbol::new(String::from("getchar"), String::from("f()"), String::from("int")));
+    scope_stack.insert_symbol(String::from("halt"), Symbol::new(String::from("halt"), String::from("f()"), String::from("void")));
+    scope_stack.insert_symbol(String::from("printbool"), Symbol::new(String::from("printbool"), String::from("f(bool)"), String::from("void")));
+    scope_stack.insert_symbol(String::from("printchar"), Symbol::new(String::from("printchar"), String::from("f(int)"), String::from("void")));
+    scope_stack.insert_symbol(String::from("printint"), Symbol::new(String::from("printint"), String::from("f(int)"), String::from("void")));
+    scope_stack.insert_symbol(String::from("printstr"), Symbol::new(String::from("printstr"), String::from("f(string)"), String::from("void")));
 
-    // Add symbol table to scope stack
-    scope_stack.push(runtime_sym);
-
-    // Open a new symbol table for the global symbols in anticipation of the first pass
-    scope_stack.push(HashMap::new());
+    // Open a new scope for the global symbols in anticipation of the first pass
+    scope_stack.open_scope();
 
     // Begin first pass
     let mut num_main_decls = 0;
@@ -126,20 +155,10 @@ pub fn semantic_checker(ast: &mut ASTNode) {
         throw_error("Program cannot contain more than one main function declaration")
     }
 
-    match scope_stack.find_symbol("test_func") {
-        None => {
-            println!("Symbol not found :(");
-        }
-        Some(symbol) => {
-            println!("Found symbol!! Type sig: {}", symbol.type_sig);
-        }
-    }
+    // Begin second pass
+    pass2(ast, &mut scope_stack);
 
     print_ast(ast);
-}
-
-fn new_symbol(name: String, type_sig: String, returns: String) -> Symbol {
-    Symbol::new(name, type_sig, returns)
 }
 
 
@@ -162,7 +181,7 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
 
     if node_type == "mainFuncDecl" {
         // Create a symbol for the main declaration
-        let main_symbol = new_symbol(String::from("main"), String::from("f()"), String::from("void"));
+        let main_symbol = Symbol::new(String::from("main"), String::from("f()"), String::from("void"));
 
         // Clone that symbol to keep a copy for the AST
         let main_symbol_ast = main_symbol.clone();
@@ -183,7 +202,7 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
         let func_returns = node.children[2].children[0].node_type.clone();
 
         // Create a symbol for the function declaration
-        let func_symbol = new_symbol(func_name.clone(), func_sig, func_returns);
+        let func_symbol = Symbol::new(func_name.clone(), func_sig, func_returns);
 
         // Clone that symbol to keep a copy for the AST
         let func_symbol_ast = func_symbol.clone();
@@ -201,7 +220,7 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
         let var_returns = var_type.clone();
 
         // Create a symbol for the variable declaration
-        let var_symbol = new_symbol(var_name.clone(), var_type, var_returns);
+        let var_symbol = Symbol::new(var_name.clone(), var_type, var_returns);
 
         // Clone that symbol to keep a copy for the AST
         let var_symbol_ast = var_symbol.clone();
@@ -214,6 +233,108 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
     }
 }
 
+fn pass2(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
+    // Execute pass2 function before checking node children
+    pass2_pre(node, scope_stack);
+
+    // Call recursively on the current node's children
+    for child in &mut node.children {
+        pass2(child, scope_stack);
+    }
+
+    // Execute pass2 function after checking node children
+    pass2_post(node, scope_stack);
+}
+
+fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
+    if node.node_type == "funcDecl" ||
+       node.node_type == "mainFuncDecl" ||
+       node.node_type == "if" ||
+       node.node_type == "ifElse" ||
+       node.node_type == "while" {
+        // Open up a new scope
+        scope_stack.open_scope();
+
+    } else if node.node_type == "varDecl" {
+        // Variables can only be defined in the global or function scopes (scope levels 2 and 3)
+        if scope_stack.scope_level() > 3 {
+            throw_error(&format!("Line {}: Variables can only be defined in the outermost scope of a function or globally (i.e. not in an if statement, while loop, etc.)",
+                                      get_line_num(node)))
+        }
+
+        // Check if a variable with this name has already been defined in this scope
+        match scope_stack.find_in_scope(&get_attr(&node.children[1])) {
+            None => {
+                // This variable hasn't been defined yet in this scope, so we can proceed to define it in our symbol table
+                let var_name = get_attr(&node.children[1]);
+                let var_type = node.children[0].node_type.clone();
+                
+                let var_symbol = Symbol::new(var_name.clone(),
+                                                     var_type.clone(),
+                                                     var_type);
+                
+                // Insert symbol into symbol table
+                scope_stack.insert_symbol(var_name, var_symbol.clone());
+
+                // Insert symbol table entry into AST
+                node.sym = Some(var_symbol);
+            }
+            Some(_) => {
+                // A variable with this name has been defined already in this scope
+                throw_error(&format!("Line {}: Variable illegally redefined within the same scope",
+                                      get_line_num(node)))
+            }
+        }
+
+    } else if node.node_type == "parameter" {
+        // Parameters are essentially identical to local variables
+        let param_name = get_attr(&node.children[1]);
+        let param_type = node.children[0].node_type.clone();
+        
+        let param_symbol = Symbol::new(param_name.clone(),
+                                               param_type.clone(),
+                                               param_type);
+        
+        // Insert symbol into symbol table
+        scope_stack.insert_symbol(param_name, param_symbol.clone());
+
+        // Insert symbol table entry into AST
+        node.sym = Some(param_symbol);
+
+    } else if node.node_type == "id" {
+        match scope_stack.find_symbol(&get_attr(&node)) {
+            // If we can't find the identifier, we haven't defined it yet
+            None => {
+                throw_error(&format!("Line {}: Unknown identifier '{}'",
+                                      get_line_num(node), get_attr(&node)))
+            }
+            Some(symbol) => {
+                // This identifier exists already, so we already know what it returns and what its symbol table is
+                node.type_sig = Some(symbol.type_sig.clone());
+                node.sym = Some(symbol.clone());
+            }
+        }
+
+    } else if node.node_type == "number" {
+        node.type_sig = Some(String::from("int"));
+
+    } else if node.node_type == "true" || node.node_type == "false" {
+        node.type_sig = Some(String::from("bool"));
+    }
+}
+
+fn pass2_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
+    if node.node_type == "funcDecl" ||
+       node.node_type == "mainFuncDecl" ||
+       node.node_type == "if" ||
+       node.node_type == "ifElse" ||
+       node.node_type == "while" {
+        // Close the topmost scope
+        scope_stack.close_scope();
+
+    }
+}
+
 fn get_attr(node: &ASTNode) -> String {
     match &node.attr {
         None => {
@@ -222,6 +343,18 @@ fn get_attr(node: &ASTNode) -> String {
         }
         Some(attr) => {
             attr.clone()
+        }
+    }
+}
+
+fn get_line_num(node: &ASTNode) -> i32 {
+    match &node.line_num {
+        None => {
+            // Should never happen, indicates an error on my end
+            0
+        }
+        Some(line_num) => {
+            *line_num
         }
     }
 }
@@ -240,12 +373,32 @@ fn get_func_sig(node: &ASTNode) -> String {
             func_sig.push_str(", ");
         }
 
-        // Add parameter type to func sig
-        func_sig.push_str(&get_attr(&param.children[0]))
+        // Add parameter/argument type to func sig
+        func_sig.push_str(&get_type(&param.children[0]));
     }
 
     // Close func sig
     func_sig.push_str(")");
 
     return func_sig;
+}
+
+fn get_type(node: &ASTNode) -> String {
+    match &node.type_sig {
+        None => {
+            match &node.sym {
+                None => {
+                    if node.node_type == "int" || node.node_type == "bool" || node.node_type == "string" {
+                        node.node_type.clone()
+                    } else {
+                        String::from("NO TYPE")
+                    }
+                }
+                Some(sym) => {sym.returns.clone()}
+            }
+        }
+        Some(type_sig) => {
+            type_sig.clone()
+        }
+    }
 }

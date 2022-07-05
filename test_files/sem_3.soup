@@ -1,0 +1,10 @@
+int x;
+
+func test_func(int param) returns int {
+    return param + 1;
+}
+
+func main() returns void {
+    int y;
+    y = test_func(x);
+}
