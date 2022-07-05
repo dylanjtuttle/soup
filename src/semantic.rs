@@ -158,6 +158,9 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // Begin second pass
     pass2(ast, &mut scope_stack);
 
+    // Begin third pass
+    pass3(ast, &mut scope_stack);
+
     print_ast(ast);
 }
 
@@ -335,6 +338,123 @@ fn pass2_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
     }
 }
 
+fn pass3(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
+    // Call recursively on the current node's children
+    for child in &mut node.children {
+        pass3(child, scope_stack);
+    }
+
+    // Execute pass3 function after checking node children
+    pass3_post(node, scope_stack);
+}
+
+fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
+    if is_binary(node) {
+        let left_type = get_type(&node.children[0]);
+        let right_type = get_type(&node.children[1]);
+
+        // Both sides of a binary operation must have the same type
+        if left_type != right_type {
+            throw_error(&format!("Line {}: Type mismatch for {}, operands must have same type",
+                                      get_line_num(node), node.node_type))
+        } else {
+            // Types match, but we need to check if the types (even if they match) make sense with the operation
+            if node.node_type == "&&" || node.node_type == "||" {
+                // Both operands must be bools, returns a bool
+                if left_type == "bool" && right_type == "bool" {
+                    // Type check is successful
+                    node.type_sig = Some(String::from("bool"));
+                } else {
+                    throw_error(&format!("Line {}: Type mismatch for {}, operands must be bools",
+                                              get_line_num(node), node.node_type))
+                }
+
+            } else if node.node_type == "==" || node.node_type == "!=" {
+                // Operands can be either ints or bools, returns a bool
+                node.type_sig = Some(String::from("bool"));
+
+            } else if node.node_type == "<" || node.node_type == ">" || node.node_type == "<=" || node.node_type == ">=" {
+                // Both operands must be ints, returns a bool
+                if left_type == "int" && right_type == "int" {
+                    // Type check is successful
+                    node.type_sig = Some(String::from("bool"));
+                } else {
+                    throw_error(&format!("Line {}: Type mismatch for {}, operands must be ints",
+                                              get_line_num(node), node.node_type))
+                }
+
+            } else if node.node_type == "=" {
+                // Operands can be either ints or bools, returns whatever type the operands are
+                node.type_sig = Some(left_type);
+
+            } else {
+                // One of + += - -= * *= / /= % %=
+                // Both operands must be ints, returns an int
+                if left_type == "int" && right_type == "int" {
+                    // Type check is successful
+                    node.type_sig = Some(String::from("int"));
+                } else {
+                    throw_error(&format!("Line {}: Type mismatch for {}, operands must be ints",
+                                              get_line_num(node), node.node_type))
+                }
+            }
+        }
+
+    } else if is_unary(&node) {
+        let op_type = get_type(&node.children[0]);
+        if node.node_type == "u-" {
+            // Operand must be int, returns an int
+            if op_type == "int" {
+                // Type check is successful
+                node.type_sig = Some(String::from("int"));
+            } else {
+                throw_error(&format!("Line {}: Type mismatch for {}, operand must be int",
+                                          get_line_num(node), node.node_type))
+            }
+        } else {
+            // !
+            // Operand must be bool, returns a bool
+            if op_type == "bool" {
+                // Type check is successful
+                node.type_sig = Some(String::from("bool"));
+            } else {
+                throw_error(&format!("Line {}: Type mismatch for {}, operand must be bool",
+                                          get_line_num(node), node.node_type))
+            }
+        }
+
+    } else if node.node_type == "funcCall" {
+        let func_name = get_attr(&node.children[0]);
+
+        // Get type signature of function call
+        let func_sig = get_func_sig(&node);
+
+        // Add func sig to type_sig of ASTNode
+        node.type_sig = Some(func_sig.clone());
+
+        // Try to find the function being called
+        match scope_stack.find_symbol(&func_name) {
+            None => {
+                throw_error(&format!("Line {}: Unknown identifier '{}'",
+                                          get_line_num(node), func_name))
+            }
+            Some(symbol) => {
+                // Make sure the func sig of the found function matches our function call
+                print_ast(node);
+                if symbol.type_sig != func_sig {
+                    throw_error(&format!("Line {}: Type mismatch for function '{}', arguments do not match parameters",
+                                          get_line_num(node), func_name))
+                } else {
+                    node.type_sig = Some(symbol.returns.clone());
+                    node.sym = Some(symbol.clone());
+                }
+            }
+        }
+    } else if node.node_type == "funcDecl" {
+        print_ast(node);
+    }
+}
+
 fn get_attr(node: &ASTNode) -> String {
     match &node.attr {
         None => {
@@ -401,4 +521,32 @@ fn get_type(node: &ASTNode) -> String {
             type_sig.clone()
         }
     }
+}
+
+fn is_binary(node: &ASTNode) -> bool {
+    node.node_type == "+" ||
+    node.node_type == "+=" ||
+    node.node_type == "-" ||
+    node.node_type == "-=" ||
+    node.node_type == "*" ||
+    node.node_type == "*=" ||
+    node.node_type == "/" ||
+    node.node_type == "/=" ||
+    node.node_type == "%" ||
+    node.node_type == "%=" ||
+    node.node_type == "+" ||
+    node.node_type == "<" ||
+    node.node_type == ">" ||
+    node.node_type == "<=" ||
+    node.node_type == ">=" ||
+    node.node_type == "=" ||
+    node.node_type == "==" ||
+    node.node_type == "!=" ||
+    node.node_type == "&&" ||
+    node.node_type == "||"
+}
+
+fn is_unary(node: &ASTNode) -> bool {
+    node.node_type == "u-" ||
+    node.node_type == "!"
 }
