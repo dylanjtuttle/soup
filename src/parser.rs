@@ -3,12 +3,12 @@ use std::io::Write;
 
 use crate::{scanner::{Token, TokenName}, throw_error, semantic::Symbol};
 
-
 #[derive(Clone)]
 pub struct ASTNode {
     pub node_type: String,
     pub attr: Option<String>,
     pub line_num: Option<i32>,
+    pub type_sig: Option<String>,
     pub sym: Option<Symbol>,
     pub children: Vec<ASTNode>,
 }
@@ -19,6 +19,7 @@ impl ASTNode {
             node_type: String::from(node_type),
             attr: attr,
             line_num: line_num,
+            type_sig: None,
             sym: None,
             children: vec![],
         };
@@ -76,6 +77,14 @@ impl ASTNode {
         };
 
         display_string.push_str(&line_num);
+
+        // Only print type sig if it exists
+        let type_sig = match &self.type_sig {
+            None => String::from(""),
+            Some(type_sig) => format!(", type: '{}'", type_sig),
+        };
+
+        display_string.push_str(&type_sig);
 
         // Only print symbol table entry if it exists
         let sym = match &self.sym {
