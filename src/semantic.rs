@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::parser::{ASTNode, print_ast};
 use crate::throw_error;
@@ -8,7 +10,7 @@ use crate::throw_error;
 // -----------------------------------------------------------------
 
 struct ScopeStack {
-    stack: Vec<HashMap<String, Symbol>>
+    stack: Vec<HashMap<String, Rc<RefCell<Symbol>>>>
 }
 
 impl ScopeStack {
@@ -18,7 +20,7 @@ impl ScopeStack {
     }
 
     // Return a mutable reference to the top scope in the stack, or None if the scope stack is empty
-    fn peek(&mut self) -> Option<&mut HashMap<String, Symbol>> {
+    fn peek(&mut self) -> Option<&mut HashMap<String, Rc<RefCell<Symbol>>>> {
         self.stack.last_mut()
     }
 
@@ -33,7 +35,7 @@ impl ScopeStack {
     }
 
     // Insert a new symbol into the topmost scope of the scope stack
-    fn insert_symbol(&mut self, name: String, new_symbol: Symbol) {
+    fn insert_symbol(&mut self, name: String, new_symbol: Rc<RefCell<Symbol>>) {
         match self.peek() {
             None => {
                 throw_error("Empty scope stack");
@@ -45,7 +47,7 @@ impl ScopeStack {
     }
 
     // Attempt to find a symbol somewhere in the scope stack
-    fn find_symbol(&self, search_name: &str) -> Option<&Symbol> {
+    fn find_symbol(&self, search_name: &str) -> Option<Rc<RefCell<Symbol>>> {
         // Iterate backwards through the scope stack (i.e. starting at the top scope and moving downwards)
         for symbol_table in self.stack.iter().rev() {
 
@@ -54,7 +56,7 @@ impl ScopeStack {
 
                 // If we find a symbol with that name, return a reference to it
                 if name == search_name {
-                    return Some(symbol);
+                    return Some(Rc::clone(symbol));
                 }
             }
         }
@@ -63,22 +65,22 @@ impl ScopeStack {
         None
     }
 
-    // Attempt to find a symbol only in the current topmost scope
-    fn find_in_scope(&mut self, search_name: &str) -> Option<&Symbol> {
+    // Return true if given symbol already exists in current scope, and false otherwise
+    fn find_in_scope(&mut self, search_name: &str) -> bool {
         match self.peek() {
             // If the scope stack is empty, we obviously won't be able to find the symbol
-            None => {None}
+            None => {false}
             Some(symbol_table) => {
                 // Search through each entry in the symbol table for the given name
-                for (name, symbol) in symbol_table {
-                    // If we find a symbol with that name, return a reference to it
+                for (name, _symbol) in symbol_table {
+                    // If we find a symbol with that name, return true
                     if name == search_name {
-                        return Some(symbol);
+                        return true;
                     }
                 }
 
-                // Otherwise, we weren't able to find a symbol with the given name, so return None
-                None
+                // Otherwise, we weren't able to find a symbol with the given name, so return false
+                false
             }
         }
     }
@@ -105,6 +107,18 @@ impl Symbol {
     fn new(name: String, type_sig: String, returns: String) -> Self {
         Symbol{name: name, type_sig: type_sig, returns: returns}
     }
+}
+
+// Insert symbol into scope stack and AST node
+fn insert_symbol(symbol: Symbol, scope_stack: &mut ScopeStack, ast_node: &mut ASTNode) {
+    // Create a smart pointer to the symbol
+    let rc_symbol = Rc::new(RefCell::new(symbol));
+
+    // Add symbol to the scope stack
+    scope_stack.insert_symbol(rc_symbol.borrow().name.clone(), Rc::clone(&rc_symbol));
+
+    // Add symbol table entry to the AST node
+    ast_node.add_sym(Rc::clone(&rc_symbol));
 }
 
 // -----------------------------------------------------------------
@@ -134,12 +148,12 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     scope_stack.open_scope();
 
     // Add a symbol for everything in the runtime library
-    scope_stack.insert_symbol(String::from("getchar"), Symbol::new(String::from("getchar"), String::from("f()"), String::from("int")));
-    scope_stack.insert_symbol(String::from("halt"), Symbol::new(String::from("halt"), String::from("f()"), String::from("void")));
-    scope_stack.insert_symbol(String::from("printbool"), Symbol::new(String::from("printbool"), String::from("f(bool)"), String::from("void")));
-    scope_stack.insert_symbol(String::from("printchar"), Symbol::new(String::from("printchar"), String::from("f(int)"), String::from("void")));
-    scope_stack.insert_symbol(String::from("printint"), Symbol::new(String::from("printint"), String::from("f(int)"), String::from("void")));
-    scope_stack.insert_symbol(String::from("printstr"), Symbol::new(String::from("printstr"), String::from("f(string)"), String::from("void")));
+    scope_stack.insert_symbol(String::from("getchar"), Rc::new(RefCell::new(Symbol::new(String::from("getchar"), String::from("f()"), String::from("int")))));
+    scope_stack.insert_symbol(String::from("halt"), Rc::new(RefCell::new(Symbol::new(String::from("halt"), String::from("f()"), String::from("void")))));
+    scope_stack.insert_symbol(String::from("printbool"), Rc::new(RefCell::new(Symbol::new(String::from("printbool"), String::from("f(bool)"), String::from("void")))));
+    scope_stack.insert_symbol(String::from("printchar"), Rc::new(RefCell::new(Symbol::new(String::from("printchar"), String::from("f(int)"), String::from("void")))));
+    scope_stack.insert_symbol(String::from("printint"), Rc::new(RefCell::new(Symbol::new(String::from("printint"), String::from("f(int)"), String::from("void")))));
+    scope_stack.insert_symbol(String::from("printstr"), Rc::new(RefCell::new(Symbol::new(String::from("printstr"), String::from("f(string)"), String::from("void")))));
 
     // Open a new scope for the global symbols in anticipation of the first pass
     scope_stack.open_scope();
@@ -161,7 +175,9 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // Begin third pass
     pass3(ast, &mut scope_stack);
 
-    // Begin third pass
+    print_ast(ast);
+
+    // Begin fourth pass
     pass4(ast, &mut 0);
 
     print_ast(ast);
@@ -189,14 +205,8 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
         // Create a symbol for the main declaration
         let main_symbol = Symbol::new(String::from("main"), String::from("f()"), String::from("void"));
 
-        // Clone that symbol to keep a copy for the AST
-        let main_symbol_ast = main_symbol.clone();
-
-        // Insert new symbol into scope stack
-        scope_stack.insert_symbol(String::from("main"), main_symbol);
-
-        // Add symbol table entry to AST node
-        node.add_sym(main_symbol_ast);
+        // Insert symbol into scope stack and AST node
+        insert_symbol(main_symbol, scope_stack, node);
 
         // Keep track of the number of main declarations
         *num_main_decls += 1;
@@ -210,14 +220,8 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
         // Create a symbol for the function declaration
         let func_symbol = Symbol::new(func_name.clone(), func_sig, func_returns);
 
-        // Clone that symbol to keep a copy for the AST
-        let func_symbol_ast = func_symbol.clone();
-
-        // Insert new symbol into scope stack
-        scope_stack.insert_symbol(func_name.clone(), func_symbol);
-
-        // Copy same symbol into AST node
-        node.add_sym(func_symbol_ast);
+        // Insert symbol into scope stack and AST node
+        insert_symbol(func_symbol, scope_stack, node);
 
     } else if node_type == "globVarDecl" {
         // Get fields from the AST
@@ -228,14 +232,8 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
         // Create a symbol for the variable declaration
         let var_symbol = Symbol::new(var_name.clone(), var_type, var_returns);
 
-        // Clone that symbol to keep a copy for the AST
-        let var_symbol_ast = var_symbol.clone();
-
-        // Insert new symbol into scope stack
-        scope_stack.insert_symbol(var_name.clone(), var_symbol);
-
-        // Copy same symbol into AST node
-        node.add_sym(var_symbol_ast);
+        // Insert symbol into scope stack and AST node
+        insert_symbol(var_symbol, scope_stack, node);
     }
 }
 
@@ -269,27 +267,21 @@ fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         }
 
         // Check if a variable with this name has already been defined in this scope
-        match scope_stack.find_in_scope(&get_attr(&node.children[1])) {
-            None => {
-                // This variable hasn't been defined yet in this scope, so we can proceed to define it in our symbol table
-                let var_name = get_attr(&node.children[1]);
-                let var_type = node.children[0].node_type.clone();
-                
-                let var_symbol = Symbol::new(var_name.clone(),
-                                                     var_type.clone(),
-                                                     var_type);
-                
-                // Insert symbol into symbol table
-                scope_stack.insert_symbol(var_name, var_symbol.clone());
-
-                // Insert symbol table entry into AST
-                node.sym = Some(var_symbol);
-            }
-            Some(_) => {
-                // A variable with this name has been defined already in this scope
-                throw_error(&format!("Line {}: Variable illegally redefined within the same scope",
-                                      get_line_num(node)))
-            }
+        if scope_stack.find_in_scope(&get_attr(&node.children[1])) {
+            // A variable with this name has been defined already in this scope
+            throw_error(&format!("Line {}: Variable illegally redefined within the same scope",
+                                      get_line_num(node)));
+        } else {
+            // This variable hasn't been defined yet in this scope, so we can proceed to define it in our symbol table
+            let var_name = get_attr(&node.children[1]);
+            let var_type = node.children[0].node_type.clone();
+            
+            let var_symbol = Symbol::new(var_name.clone(),
+                                                 var_type.clone(),
+                                                 var_type);
+            
+            // Insert symbol into scope stack and AST node
+            insert_symbol(var_symbol, scope_stack, node);
         }
 
     } else if node.node_type == "parameter" {
@@ -300,24 +292,21 @@ fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         let param_symbol = Symbol::new(param_name.clone(),
                                                param_type.clone(),
                                                param_type);
-        
-        // Insert symbol into symbol table
-        scope_stack.insert_symbol(param_name, param_symbol.clone());
 
-        // Insert symbol table entry into AST
-        node.sym = Some(param_symbol);
+        // Insert symbol into scope stack and AST node
+        insert_symbol(param_symbol, scope_stack, node);
 
     } else if node.node_type == "id" {
         match scope_stack.find_symbol(&get_attr(&node)) {
             // If we can't find the identifier, we haven't defined it yet
             None => {
                 throw_error(&format!("Line {}: Unknown identifier '{}'",
-                                      get_line_num(node), get_attr(&node)))
+                                          get_line_num(node), get_attr(&node)))
             }
             Some(symbol) => {
                 // This identifier exists already, so we already know what it returns and what its symbol table is
-                node.type_sig = Some(symbol.type_sig.clone());
-                node.sym = Some(symbol.clone());
+                node.type_sig = Some(symbol.borrow().type_sig.clone());
+                node.sym = Some(Rc::clone(&symbol));
             }
         }
 
@@ -443,11 +432,11 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
             }
             Some(symbol) => {
                 // Make sure the func sig of the found function matches our function call
-                if symbol.type_sig != func_sig {
+                if symbol.borrow().type_sig != func_sig {
                     throw_error(&format!("Line {}: Argument(s) for invocation of function '{}' do not match parameter(s)",
                                           get_line_num(node), func_name))
                 } else {
-                    node.type_sig = Some(symbol.returns.clone());
+                    node.type_sig = Some(symbol.borrow().returns.clone());
                     node.sym = Some(symbol.clone());
                 }
             }
@@ -549,7 +538,7 @@ fn get_type(node: &ASTNode) -> String {
                         String::from("NO TYPE")
                     }
                 }
-                Some(sym) => {sym.returns.clone()}
+                Some(sym) => {sym.borrow().returns.clone()}
             }
         }
         Some(type_sig) => {
