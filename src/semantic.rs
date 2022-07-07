@@ -408,8 +408,8 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                 // Type check is successful
                 node.type_sig = Some(String::from("int"));
             } else {
-                throw_error(&format!("Line {}: Type mismatch for {}, operand must be int",
-                                          get_line_num(node), node.node_type))
+                throw_error(&format!("Line {}: Type mismatch for -, operand must be int",
+                                          get_line_num(node)))
             }
         } else {
             // !
