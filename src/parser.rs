@@ -855,6 +855,15 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             return while_node;
         }
 
+        // If the first token we see is MAIN, the user is probably trying to call the main function
+        TokenName::MAIN => {
+            throw_error(&format!("Line {}: main function cannot be invoked",
+                        current_token.line_num));
+            
+            // Return dummy node to avoid the compiler getting angry with me
+            return ASTNode::new("statement", None, None);
+        }
+
         // Otherwise, we have a syntax error
         _ => {
             throw_error(&format!("Syntax Error on line {}: not a valid statement",
