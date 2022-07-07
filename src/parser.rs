@@ -1,5 +1,7 @@
 use std::io;
 use std::io::Write;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::{scanner::{Token, TokenName}, throw_error, semantic::Symbol};
 
@@ -9,7 +11,7 @@ pub struct ASTNode {
     pub attr: Option<String>,
     pub line_num: Option<i32>,
     pub type_sig: Option<String>,
-    pub sym: Option<Symbol>,
+    pub sym: Option<Rc<RefCell<Symbol>>>,
     pub children: Vec<ASTNode>,
 }
 
@@ -55,7 +57,7 @@ impl ASTNode {
         self.children = new_children;
     }
 
-    pub fn add_sym(&mut self, new_sym: Symbol) {
+    pub fn add_sym(&mut self, new_sym: Rc<RefCell<Symbol>>) {
         self.sym = Some(new_sym);
     }
 
@@ -90,9 +92,9 @@ impl ASTNode {
         let sym = match &self.sym {
             None => String::from(""),
             Some(symbol_entry) => format!(", sym: {{name: {}, sig: {}, returns: {}}}",
-                                                                symbol_entry.name,
-                                                                symbol_entry.type_sig,
-                                                                symbol_entry.returns),
+                                                                symbol_entry.borrow().name,
+                                                                symbol_entry.borrow().type_sig,
+                                                                symbol_entry.borrow().returns),
         };
 
         display_string.push_str(&sym);
