@@ -213,8 +213,8 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
 
     } else if node_type == "funcDecl" {
         // Get fields from the AST
-        let func_name = get_attr(&node.children[0]);
-        let func_sig = get_func_sig(node);
+        let func_name = &node.children[0].get_attr();
+        let func_sig = node.get_func_sig();
         let func_returns = node.children[2].children[0].node_type.clone();
 
         // Create a symbol for the function declaration
@@ -225,7 +225,7 @@ fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_decls: 
 
     } else if node_type == "globVarDecl" {
         // Get fields from the AST
-        let var_name = get_attr(&node.children[1]);
+        let var_name = &node.children[1].get_attr();
         let var_type = node.children[0].node_type.clone();
         let var_returns = var_type.clone();
 
@@ -263,18 +263,18 @@ fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         // Variables can only be defined in the global or function scopes (scope levels 2 and 3)
         if scope_stack.scope_level() > 3 {
             throw_error(&format!("Line {}: Variables can only be defined in the outermost scope of a function or globally (i.e. not in an if statement, while loop, etc.)",
-                                      get_line_num(node)))
+                                      node.get_line_num()))
         }
 
         // Check if a variable with this name has already been defined in this scope
-        if scope_stack.find_in_scope(&get_attr(&node.children[1])) {
+        if scope_stack.find_in_scope(&&node.children[1].get_attr()) {
             // A variable with this name has been defined already in this scope
             throw_error(&format!("Line {}: Variable illegally redefined within the same scope",
-                                      get_line_num(node)));
+                                      node.get_line_num()));
         } else {
             // This variable hasn't been defined yet in this scope, so we can proceed to define it in our symbol table
-            let var_name = get_attr(&node.children[1]);
-            let var_type = node.children[0].node_type.clone();
+            let var_name = node.children[1].get_attr();
+            let var_type = node.children[0].get_type();
             
             let var_symbol = Symbol::new(var_name.clone(),
                                                  var_type.clone(),
@@ -286,7 +286,7 @@ fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
 
     } else if node.node_type == "parameter" {
         // Parameters are essentially identical to local variables
-        let param_name = get_attr(&node.children[1]);
+        let param_name = node.children[1].get_attr();
         let param_type = node.children[0].node_type.clone();
         
         let param_symbol = Symbol::new(param_name.clone(),
@@ -297,11 +297,11 @@ fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         insert_symbol(param_symbol, scope_stack, node);
 
     } else if node.node_type == "id" {
-        match scope_stack.find_symbol(&get_attr(&node)) {
+        match scope_stack.find_symbol(&node.get_attr()) {
             // If we can't find the identifier, we haven't defined it yet
             None => {
                 throw_error(&format!("Line {}: Unknown identifier '{}'",
-                                          get_line_num(node), get_attr(&node)))
+                                          node.get_line_num(), node.get_attr()))
             }
             Some(symbol) => {
                 // This identifier exists already, so we already know what it returns and what its symbol table is
@@ -342,13 +342,13 @@ fn pass3(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
 
 fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
     if is_binary(node) {
-        let left_type = get_type(&node.children[0]);
-        let right_type = get_type(&node.children[1]);
+        let left_type = node.children[0].get_type();
+        let right_type = node.children[1].get_type();
 
         // Both sides of a binary operation must have the same type
         if left_type != right_type {
             throw_error(&format!("Line {}: Type mismatch for {}, operands must have same type",
-                                      get_line_num(node), node.node_type))
+                                      node.get_line_num(), node.node_type))
         } else {
             // Types match, but we need to check if the types (even if they match) make sense with the operation
             if node.node_type == "&&" || node.node_type == "||" {
@@ -358,7 +358,7 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                     node.type_sig = Some(String::from("bool"));
                 } else {
                     throw_error(&format!("Line {}: Type mismatch for {}, operands must be bools",
-                                              get_line_num(node), node.node_type))
+                                              node.get_line_num(), node.node_type))
                 }
 
             } else if node.node_type == "==" || node.node_type == "!=" {
@@ -372,7 +372,7 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                     node.type_sig = Some(String::from("bool"));
                 } else {
                     throw_error(&format!("Line {}: Type mismatch for {}, operands must be ints",
-                                              get_line_num(node), node.node_type))
+                                              node.get_line_num(), node.node_type))
                 }
 
             } else if node.node_type == "=" {
@@ -387,13 +387,13 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                     node.type_sig = Some(String::from("int"));
                 } else {
                     throw_error(&format!("Line {}: Type mismatch for {}, operands must be ints",
-                                              get_line_num(node), node.node_type))
+                                              node.get_line_num(), node.node_type))
                 }
             }
         }
 
     } else if is_unary(&node) {
-        let op_type = get_type(&node.children[0]);
+        let op_type = node.children[0].get_type();
         if node.node_type == "u-" {
             // Operand must be int, returns an int
             if op_type == "int" {
@@ -401,7 +401,7 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                 node.type_sig = Some(String::from("int"));
             } else {
                 throw_error(&format!("Line {}: Type mismatch for -, operand must be int",
-                                          get_line_num(node)))
+                                          node.get_line_num()))
             }
         } else {
             // !
@@ -411,15 +411,15 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                 node.type_sig = Some(String::from("bool"));
             } else {
                 throw_error(&format!("Line {}: Type mismatch for {}, operand must be bool",
-                                          get_line_num(node), node.node_type))
+                                          node.get_line_num(), node.node_type))
             }
         }
 
     } else if node.node_type == "funcCall" {
-        let func_name = get_attr(&node.children[0]);
+        let func_name = node.children[0].get_attr();
 
         // Get type signature of function call
-        let func_sig = get_func_sig(&node);
+        let func_sig = node.get_func_sig();
 
         // Add func sig to type_sig of ASTNode
         node.type_sig = Some(func_sig.clone());
@@ -428,13 +428,13 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         match scope_stack.find_symbol(&func_name) {
             None => {
                 throw_error(&format!("Line {}: Unknown identifier '{}'",
-                                          get_line_num(node), func_name))
+                                          node.get_line_num(), func_name))
             }
             Some(symbol) => {
                 // Make sure the func sig of the found function matches our function call
                 if symbol.borrow().type_sig != func_sig {
                     throw_error(&format!("Line {}: Argument(s) for invocation of function '{}' do not match parameter(s)",
-                                          get_line_num(node), func_name))
+                                              node.get_line_num(), func_name))
                 } else {
                     node.type_sig = Some(symbol.borrow().returns.clone());
                     node.sym = Some(symbol.clone());
@@ -466,14 +466,14 @@ fn pass4_pre(node: &mut ASTNode, while_depth: &mut i32) {
     if node.node_type == "break" {
         if *while_depth == 0 {
             throw_error(&format!("Line {}: break statement must be within a while loop",
-                                      get_line_num(node)))
+                                      node.get_line_num()))
         }
     }
 
     // An if- or while-condition must be of Boolean type
     if node.node_type == "if" || node.node_type == "ifElse" || node.node_type == "while" {
         // The condition is the first child of the if/if-else/while
-        if get_type(&node.children[0]) != "bool" {
+        if node.children[0].get_type() != "bool" {
             // Simply for the error statement, so that it can specify whether it was
             // an if or while condition that caused the error
             let node_type = match &node.node_type {
@@ -482,7 +482,7 @@ fn pass4_pre(node: &mut ASTNode, while_depth: &mut i32) {
             };
 
             throw_error(&format!("Line {}: {} condition must be of boolean type",
-                                      get_line_num(node), node_type));
+                                      node.get_line_num(), node_type));
         }
     }
 }
@@ -490,74 +490,6 @@ fn pass4_pre(node: &mut ASTNode, while_depth: &mut i32) {
 fn pass4_post(node: &mut ASTNode, while_depth: &mut i32) {
     if node.node_type == "while" {
         *while_depth -= 1;
-    }
-}
-
-fn get_attr(node: &ASTNode) -> String {
-    match &node.attr {
-        None => {
-            // Should never happen, indicates an error on my end
-            String::from("ATTR")
-        }
-        Some(attr) => {
-            attr.clone()
-        }
-    }
-}
-
-fn get_line_num(node: &ASTNode) -> i32 {
-    match &node.line_num {
-        None => {
-            // Should never happen, indicates an error on my end
-            0
-        }
-        Some(line_num) => {
-            *line_num
-        }
-    }
-}
-
-fn get_func_sig(node: &ASTNode) -> String {
-    // Open func sig
-    let mut func_sig = String::from("f(");
-
-    // Loop through parameters
-    let mut param_num = 0;
-    for param in &node.children[1].children {
-        param_num += 1;
-
-        // Function parameters must be comma separated, so any parameter after the first must be prefixed by ", "
-        if param_num > 1 {
-            func_sig.push_str(", ");
-        }
-
-        // Add parameter/argument type to func sig
-        func_sig.push_str(&get_type(&param.children[0]));
-    }
-
-    // Close func sig
-    func_sig.push_str(")");
-
-    return func_sig;
-}
-
-fn get_type(node: &ASTNode) -> String {
-    match &node.type_sig {
-        None => {
-            match &node.sym {
-                None => {
-                    if node.node_type == "int" || node.node_type == "bool" || node.node_type == "string" {
-                        node.node_type.clone()
-                    } else {
-                        String::from("NO TYPE")
-                    }
-                }
-                Some(sym) => {sym.borrow().returns.clone()}
-            }
-        }
-        Some(type_sig) => {
-            type_sig.clone()
-        }
     }
 }
 

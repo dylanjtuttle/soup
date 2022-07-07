@@ -61,6 +61,74 @@ impl ASTNode {
         self.sym = Some(new_sym);
     }
 
+    pub fn get_attr(&self) -> String {
+        match &self.attr {
+            None => {
+                // Should never happen, indicates an error on my end
+                String::from("ATTR")
+            }
+            Some(attr) => {
+                attr.clone()
+            }
+        }
+    }
+
+    pub fn get_line_num(&self) -> i32 {
+        match self.line_num {
+            None => {
+                // Should never happen, indicates an error on my end
+                0
+            }
+            Some(line_num) => {
+                line_num
+            }
+        }
+    }
+
+    pub fn get_func_sig(&self) -> String {
+        // Open func sig
+        let mut func_sig = String::from("f(");
+    
+        // Loop through parameters
+        let mut param_num = 0;
+        for param in &self.children[1].children {
+            param_num += 1;
+    
+            // Function parameters must be comma separated, so any parameter after the first must be prefixed by ", "
+            if param_num > 1 {
+                func_sig.push_str(", ");
+            }
+    
+            // Add parameter/argument type to func sig
+            func_sig.push_str(&&param.children[0].get_type());
+        }
+    
+        // Close func sig
+        func_sig.push_str(")");
+    
+        return func_sig;
+    }
+
+    pub fn get_type(&self) -> String {
+        match &self.type_sig {
+            None => {
+                match &self.sym {
+                    None => {
+                        if self.node_type == "int" || self.node_type == "bool" || self.node_type == "string" {
+                            self.node_type.clone()
+                        } else {
+                            String::from("NO TYPE")
+                        }
+                    }
+                    Some(sym) => {sym.borrow().returns.clone()}
+                }
+            }
+            Some(type_sig) => {
+                type_sig.clone()
+            }
+        }
+    }
+
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);
 
