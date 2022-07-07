@@ -441,8 +441,6 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                 }
             }
         }
-    } else if node.node_type == "funcDecl" {
-        print_ast(node);
     }
 }
 
