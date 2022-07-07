@@ -440,9 +440,8 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
             }
             Some(symbol) => {
                 // Make sure the func sig of the found function matches our function call
-                print_ast(node);
                 if symbol.type_sig != func_sig {
-                    throw_error(&format!("Line {}: Type mismatch for function '{}', arguments do not match parameters",
+                    throw_error(&format!("Line {}: Argument(s) for invocation of function '{}' do not match parameter(s)",
                                           get_line_num(node), func_name))
                 } else {
                     node.type_sig = Some(symbol.returns.clone());
