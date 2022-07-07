@@ -441,6 +441,15 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
                 }
             }
         }
+
+    } else if node.node_type == "return" {
+        if node.children.len() == 0 {
+            // If the return statement is empty, set its type signature to "void"
+            node.type_sig = Some(String::from("void"));
+        } else {
+            // Otherwise, pass the type of the expression being returned up to the return node
+            node.type_sig = Some(node.children[0].get_type());
+        }
     }
 }
 
