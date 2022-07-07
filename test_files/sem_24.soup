@@ -1,0 +1,5 @@
+// Test semantic error for undeclared identifier 1
+
+func main() returns void {
+    x = 1;
+}

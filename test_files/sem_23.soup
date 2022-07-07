@@ -1,0 +1,6 @@
+// Test semantic error for redefining variables within the same scope
+
+func main() returns void {
+    int x;
+    bool x;
+}

@@ -1,0 +1,14 @@
+// Test semantic error for wrong type of arguments in a function call
+
+func main() returns void {
+    int x;
+    x = 1;
+    int y;
+    y = 2;
+    test_func(x, y);
+}
+
+func test_func(int x, bool y) returns void {
+    x += 1;
+    y = !y;
+}

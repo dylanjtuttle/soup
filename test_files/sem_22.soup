@@ -1,0 +1,7 @@
+// Test semantic error for if- or while- loop must have boolean expression 2
+
+func main() returns void {
+    while 1 + 1 {
+        printstr("1 + 1");
+    }
+}

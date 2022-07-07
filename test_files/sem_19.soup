@@ -1,0 +1,10 @@
+// Test semantic error for nonvoid function must return a value 2
+
+func main() returns void {
+    int x;
+    x = test_func();
+}
+
+func test_func() returns int {
+    return 1;
+}

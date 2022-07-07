@@ -1,0 +1,9 @@
+// Test semantic error that main function can't be called
+
+func main() returns void {
+    ;
+}
+
+func test_func() returns void {
+    main();
+}

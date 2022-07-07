@@ -1,0 +1,11 @@
+// Test semantic error for no return statement in a non-void function
+
+func main() returns void {
+    int x;
+    x = test_func();
+}
+
+func test_func() returns int {
+    int x;
+    x = 1;
+}

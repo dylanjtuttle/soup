@@ -1,0 +1,6 @@
+// Test operator type mismatch semantic error 2
+
+func main() returns void {
+    int x;
+    x = 1 == 2;
+}

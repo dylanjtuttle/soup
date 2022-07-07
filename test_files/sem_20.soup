@@ -1,0 +1,10 @@
+// Test semantic error for value returned from function has wrong type
+
+func main() returns void {
+    int x;
+    x = test_func();
+}
+
+func test_func() returns int {
+    return true;
+}

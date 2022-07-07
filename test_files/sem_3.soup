@@ -1,10 +1,11 @@
-int x;
+// Test semantic error for variable declaration not in function or global scope
 
-func test_func(int param) returns int {
-    return param + 1;
-}
+int var1;
 
 func main() returns void {
-    int y;
-    y = test_func(x);
+    int var2;
+
+    if true {
+        int var3;
+    }
 }

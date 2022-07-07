@@ -1,0 +1,6 @@
+// Test operator type mismatch semantic error 7
+
+func main() returns void {
+    bool x;
+    x = 1 && 1;
+}

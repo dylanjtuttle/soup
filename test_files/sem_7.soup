@@ -1,0 +1,5 @@
+// Test semantic error that break statements must be inside while loops
+
+func main() returns void {
+    break;
+}

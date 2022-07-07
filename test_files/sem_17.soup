@@ -1,0 +1,7 @@
+// Test semantic error for void function can't return a value 2
+
+func main() returns void {
+    int x;
+    x = 0;
+    return x;
+}
