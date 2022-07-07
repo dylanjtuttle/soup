@@ -129,6 +129,25 @@ impl ASTNode {
         }
     }
 
+    // Check if the current node or any of its children are a return node
+    pub fn has_nonempty_return(&self) -> bool {
+        // If the current node is a return node, return true
+        if self.node_type == "return" && self.get_type() != "void" {
+            return true;
+
+        } else {
+            // Otherwise, if any of the children are or have a return node, return true
+            for child in &self.children {
+                if child.has_nonempty_return() {
+                    return true;
+                }
+            }
+
+            // If none of the children are or have a return node, return false
+            return false;
+        }
+    }
+
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);
 

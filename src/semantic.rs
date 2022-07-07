@@ -126,7 +126,7 @@ fn insert_symbol(symbol: Symbol, scope_stack: &mut ScopeStack, ast_node: &mut AS
 // -----------------------------------------------------------------
 
 pub fn semantic_checker(ast: &mut ASTNode) {
-    // This semantic checker will perform four traversals of the AST:
+    // This semantic checker will perform five traversals of the AST:
     // 
     // pass 1 - post-order - collects information about global declarations
     // 
@@ -136,7 +136,9 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // 
     // pass 3 - post-order - full type checking
     // 
-    // pass 4 - pre/post-order - miscellaneous grab bag of everything else
+    // pass 4 - pre/post-order - ensure break statements are inside while loops
+    //                           and if/while conditions are of boolean type
+    // pass 5 - pre/post-order - various checks of return statements and their functions
 
     // Begin by creating the scope stack, this will hold a symbol table for each level of scope:
     // level 1 - runtime library
@@ -175,10 +177,11 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // Begin third pass
     pass3(ast, &mut scope_stack);
 
-    print_ast(ast);
-
     // Begin fourth pass
     pass4(ast, &mut 0);
+
+    // Begin fifth pass
+    pass5(ast, &mut String::from("None"));
 
     print_ast(ast);
 }
@@ -499,6 +502,64 @@ fn pass4_pre(node: &mut ASTNode, while_depth: &mut i32) {
 fn pass4_post(node: &mut ASTNode, while_depth: &mut i32) {
     if node.node_type == "while" {
         *while_depth -= 1;
+    }
+}
+
+fn pass5(node: &mut ASTNode, current_func_returns: &mut String) {
+    // Execute pass4 function before checking node children
+    pass5_pre(node, current_func_returns);
+
+    // Call recursively on the current node's children
+    for child in &mut node.children {
+        pass5(child, current_func_returns);
+    }
+
+    // Execute pass3 function after checking node children
+    pass5_post(node, current_func_returns);
+}
+
+fn pass5_pre(node: &mut ASTNode, current_func_returns: &mut String) {
+    // If we're entering into a function, make note of its return type
+    if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
+        *current_func_returns = node.get_type();
+
+        if node.get_type() != "void" && !node.has_nonempty_return() {
+            // If this is a non-void function, it must return a value.
+            // Thus, if it does not have a non-empty return statement,
+            // that is, a return statement that actually returns a value, that is an error
+            throw_error(&format!("Line {}: Non-void function '{}' must return a value",
+                                      node.get_line_num(), node.children[0].get_attr()));
+        }
+    }
+
+    if node.node_type == "return" {
+        if node.get_type() != "void" {
+            // We have a non-empty return statement
+            if current_func_returns == "void" {
+                // A void function can't return a value
+                throw_error(&format!("Line {}: Void function cannot return a value",
+                                         node.get_line_num()));
+
+            } else if *current_func_returns != node.get_type() {
+                // If we're in a non-void function, we have to be returning a value with the same type
+                print_ast(node);
+                throw_error(&format!("Line {}: Function is supposed to return {}, but returns {} instead",
+                                         node.get_line_num(), current_func_returns, node.get_type()));
+            }
+        } else {
+            // We have an empty return statement
+            if current_func_returns != "void" {
+                throw_error(&format!("Line {}: Non-void function must return a value",
+                                         node.get_line_num()));
+            }
+        }
+    }
+}
+
+fn pass5_post(node: &mut ASTNode, current_func_returns: &mut String) {
+    // If we're leaving a function, set the return type back to "None"
+    if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
+        *current_func_returns = String::from("None");
     }
 }
 
