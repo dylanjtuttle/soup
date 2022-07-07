@@ -469,6 +469,22 @@ fn pass4_pre(node: &mut ASTNode, while_depth: &mut i32) {
                                       get_line_num(node)))
         }
     }
+
+    // An if- or while-condition must be of Boolean type
+    if node.node_type == "if" || node.node_type == "ifElse" || node.node_type == "while" {
+        // The condition is the first child of the if/if-else/while
+        if get_type(&node.children[0]) != "bool" {
+            // Simply for the error statement, so that it can specify whether it was
+            // an if or while condition that caused the error
+            let node_type = match &node.node_type {
+                w if w == "while" => "while",
+                _ => "if"
+            };
+
+            throw_error(&format!("Line {}: {} condition must be of boolean type",
+                                      get_line_num(node), node_type));
+        }
+    }
 }
 
 fn pass4_post(node: &mut ASTNode, while_depth: &mut i32) {
