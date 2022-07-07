@@ -161,6 +161,9 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // Begin third pass
     pass3(ast, &mut scope_stack);
 
+    // Begin third pass
+    pass4(ast, &mut 0);
+
     print_ast(ast);
 }
 
@@ -451,6 +454,39 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         }
     } else if node.node_type == "funcDecl" {
         print_ast(node);
+    }
+}
+
+fn pass4(node: &mut ASTNode, while_depth: &mut i32) {
+    // Execute pass4 function before checking node children
+    pass4_pre(node, while_depth);
+
+    // Call recursively on the current node's children
+    for child in &mut node.children {
+        pass4(child, while_depth);
+    }
+
+    // Execute pass3 function after checking node children
+    pass4_post(node, while_depth);
+}
+
+fn pass4_pre(node: &mut ASTNode, while_depth: &mut i32) {
+    if node.node_type == "while" {
+        *while_depth += 1;
+    }
+
+    // Break statement must be within a while loop
+    if node.node_type == "break" {
+        if *while_depth == 0 {
+            throw_error(&format!("Line {}: break statement must be within a while loop",
+                                      get_line_num(node)))
+        }
+    }
+}
+
+fn pass4_post(node: &mut ASTNode, while_depth: &mut i32) {
+    if node.node_type == "while" {
+        *while_depth -= 1;
     }
 }
 
