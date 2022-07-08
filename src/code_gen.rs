@@ -24,12 +24,12 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
 
     // ----------------------------------------------------------------------------------
     // Write ASM main routine (not to be confused with the compilee's main function)
-    write_asm(&mut asm_file, String::from("        .global _start"));
+    write_asm(&mut asm_file, String::from("\n        .global _start"));
     write_asm(&mut asm_file, String::from("        .balign 4"));
     write_asm(&mut asm_file, String::from("_start: stp     x29, x30, [sp, -16]!"));
     write_asm(&mut asm_file, String::from("        mov     x29, sp"));
 
-    // L0 is the label for the compilee's main function, so we branch and link to it
+    // Branch and link to the compilee's main function
     write_asm(&mut asm_file, String::from("        bl      main1"));
 
     write_asm(&mut asm_file, String::from("end:    ldp     x29, x30, [sp], 16"));
@@ -49,7 +49,6 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
 
 fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
     if node.node_type == "string" {
-        println!("Woohoo!!");
         // Add the string, along with a label, to the top of the screen
         write_asm(asm_file, format!("{}: .string \"{}\"", get_label(label), node.get_attr()));
         // Create a symbol table and add it to the string node
