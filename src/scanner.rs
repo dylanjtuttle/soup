@@ -555,9 +555,9 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
 
                     // If we find a backslash, the user is trying to create an escape character,
                     // so add another one to escape the backslash
-                    if string_char == '\\' {
+                    /*if string_char == '\\' {
                         string_vec.push('\\');
-                    }
+                    }*/
 
                     i += 1;
                     string_char = chars[i].char_val;

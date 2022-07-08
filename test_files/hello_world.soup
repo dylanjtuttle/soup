@@ -1,0 +1,5 @@
+// Pretty self-explanatory, really
+
+func main() returns void {
+    printstr("Hello, world!\n");
+}

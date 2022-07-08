@@ -7,6 +7,7 @@ use crate::parser::print_ast;
 pub mod scanner;
 pub mod parser;
 pub mod semantic;
+pub mod code_gen;
 
 fn main() {
     // Get command line arguments
@@ -32,16 +33,17 @@ fn main() {
 
     println!("\nBEGIN PARSER");
 
-    // print_ast(junk::parser(&tokens), 0);
     let mut ast = parser::parser(&tokens);
-
-    println!("\nPrint AST:\n");
 
     print_ast(&ast);
 
     println!("\nBEGIN SEMANTIC CHECKING:\n");
 
     semantic::semantic_checker(&mut ast);
+
+    println!("\nBEGIN CODE GENERATION:\n");
+
+    code_gen::code_gen("asm/test.asm", &mut ast);
 }
 
 pub fn throw_warning(msg: &str) {

@@ -100,12 +100,20 @@ pub struct Symbol {
     pub name: String,
     pub type_sig: String,
     pub returns: String,
+    pub label: Option<String>,
 }
 
 impl Symbol {
     // Create a new symbol
-    fn new(name: String, type_sig: String, returns: String) -> Self {
-        Symbol{name: name, type_sig: type_sig, returns: returns}
+    pub fn new(name: String, type_sig: String, returns: String) -> Self {
+        Symbol{name: name, type_sig: type_sig, returns: returns, label: None}
+    }
+
+    pub fn get_label(&self) -> String {
+        return match &self.label {
+            None => String::from("LABEL"),  // Should never happen, indicates an error on my end
+            Some(label) => label.clone()
+        }
     }
 }
 

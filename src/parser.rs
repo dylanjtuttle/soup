@@ -63,10 +63,7 @@ impl ASTNode {
 
     pub fn get_attr(&self) -> String {
         match &self.attr {
-            None => {
-                // Should never happen, indicates an error on my end
-                String::from("ATTR")
-            }
+            None => String::from("ATTR"), // Should never happen, indicates an error on my end
             Some(attr) => {
                 attr.clone()
             }
@@ -75,13 +72,45 @@ impl ASTNode {
 
     pub fn get_line_num(&self) -> i32 {
         match self.line_num {
-            None => {
-                // Should never happen, indicates an error on my end
-                0
-            }
+            None => 0,  // Should never happen, indicates an error on my end
             Some(line_num) => {
                 line_num
             }
+        }
+    }
+
+    pub fn get_type(&self) -> String {
+        match &self.type_sig {
+            None => {
+                match &self.sym {
+                    None => {
+                        if self.node_type == "int" || self.node_type == "bool" || self.node_type == "string" {
+                            self.node_type.clone()
+                        } else {
+                            String::from("NO TYPE")  // Should never happen, indicates an error on my end
+                        }
+                    }
+                    Some(sym) => {sym.borrow().returns.clone()}
+                }
+            }
+            Some(type_sig) => {
+                type_sig.clone()
+            }
+        }
+    }
+
+    pub fn get_func_name(&self) -> String {
+        return match &self.sym {
+            None => String::from("FUNC"),  // Should never happen, indicates an error on my end
+            Some(sym) => sym.borrow().name.clone()
+        }
+    }
+
+    pub fn get_sym(&self) -> Rc<RefCell<Symbol>> {
+        return match &self.sym {
+            // Should never happen, indicates an error on my end
+            None => Rc::new(RefCell::new(Symbol::new(String::from("SYMBOL"), String::from("SYMBOL"), String::from("SYMBOL")))),
+            Some(sym) => Rc::clone(sym)
         }
     }
 
@@ -107,26 +136,6 @@ impl ASTNode {
         func_sig.push_str(")");
     
         return func_sig;
-    }
-
-    pub fn get_type(&self) -> String {
-        match &self.type_sig {
-            None => {
-                match &self.sym {
-                    None => {
-                        if self.node_type == "int" || self.node_type == "bool" || self.node_type == "string" {
-                            self.node_type.clone()
-                        } else {
-                            String::from("NO TYPE")
-                        }
-                    }
-                    Some(sym) => {sym.borrow().returns.clone()}
-                }
-            }
-            Some(type_sig) => {
-                type_sig.clone()
-            }
-        }
     }
 
     // Check if the current node or any of its children are a return node
