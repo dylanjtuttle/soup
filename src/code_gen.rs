@@ -108,17 +108,55 @@ fn traverse_post(asm_file: &mut File, node: &mut ASTNode, label: &mut String) ->
     return false;
 }
 
+// Calculate the number of bytes a function needs to allocate on the stack
+fn get_func_stack_alloc(node: &ASTNode) -> i32 {
+    // Calculate the number of bytes we need to allocate on the stack for local variables
+    let mut var_alloc = get_func_var_alloc(node);
+
+    // Add 16 bytes for the stack frame
+    var_alloc += 16;
+
+    // If the number of bytes isn't doubleword aligned, add 4 pad bytes to align it
+    if var_alloc % 8 != 0 {
+        var_alloc += 4;
+    }
+
+    return var_alloc;
+}
+
+// Calculate the number of bytes a function needs to allocate on the stack for its local variables
+fn get_func_var_alloc(node: &ASTNode) -> i32 {
+    let mut num_bytes = 0;
+
+    if node.node_type == "parameter" || node.node_type == "varDecl" {
+        num_bytes += 4;
+    }
+
+    // Visit children
+    for child in &node.children {
+        num_bytes += get_func_var_alloc(child);
+    }
+
+    return num_bytes;
+}
+
 fn gen_func_enter(asm_file: &mut File, node: &mut ASTNode) {
+    // Get number of bytes to allocate on the stack
+    let num_bytes = get_func_stack_alloc(node);
+
     // Write function entry label
     write_asm(asm_file, format!("\n{}1:", node.get_func_name()));
-    write_asm(asm_file, String::from("        stp     x29, x30, [sp, -16]!"));
+    write_asm(asm_file, format!("        stp     x29, x30, [sp, -{}]!", num_bytes));
     write_asm(asm_file, String::from("        mov     x29, sp"));
 }
 
 fn gen_func_exit(asm_file: &mut File, node: &mut ASTNode) {
-    // Write function entry label
+    // Get number of bytes to allocate on the stack
+    let num_bytes = get_func_stack_alloc(node);
+
+    // Write function exit label
     write_asm(asm_file, format!("{}2:", node.get_func_name()));
-    write_asm(asm_file, String::from("        ldp     x29, x30, [sp], 16"));
+    write_asm(asm_file, format!("        ldp     x29, x30, [sp], {}", num_bytes));
     write_asm(asm_file, String::from("        ret"));
 }
 
