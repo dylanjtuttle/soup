@@ -187,10 +187,26 @@ impl ASTNode {
         // Only print symbol table entry if it exists
         let sym = match &self.sym {
             None => String::from(""),
-            Some(symbol_entry) => format!(", sym: {{name: {}, sig: {}, returns: {}}}",
-                                                                symbol_entry.borrow().name,
-                                                                symbol_entry.borrow().type_sig,
-                                                                symbol_entry.borrow().returns),
+            Some(symbol_entry) => {
+                let mut sym_string = format!(", sym: {{name: {}, sig: {}, returns: {}",
+                        symbol_entry.borrow().name,
+                        symbol_entry.borrow().type_sig,
+                        symbol_entry.borrow().returns);
+
+                let label_string = match &symbol_entry.borrow().label {
+                    None => String::from(""),
+                    Some(label) => {
+                        let temp = format!(", label: {}", label);
+                        temp
+                    }
+                };
+
+                sym_string.push_str(&label_string);
+
+                sym_string.push_str("}");
+
+                sym_string
+            }
         };
 
         display_string.push_str(&sym);

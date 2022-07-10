@@ -5,6 +5,7 @@ use std::cell::RefCell;
 
 use crate::parser::ASTNode;
 use crate::semantic::Symbol;
+use crate::throw_error;
 
 // -----------------------------------------------------------------
 // CODE GENERATOR
@@ -48,6 +49,83 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
 // -----------------------------------------------------------------
 
 fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
+    if node.node_type == "funcCall" && node.get_func_name() == "printf" {
+        let mut num_formatters = 0;
+        let fstring = node.children[1].children[0].children[0].get_attr();
+
+        let mut new_string = String::from("");
+        let mut skip = false;
+
+        for (i, char) in node.children[1].children[0].children[0].get_attr().chars().enumerate() {
+            if skip {
+                skip = false;
+                continue;
+            }
+
+            // If we find a backslash, we prepare to push an escaped character to the new string
+            if char == '\\' {
+                let next_char = fstring.as_bytes()[i + 1] as char;
+                match next_char {
+                    'n' => {new_string.push_str("\\n"); skip = true;}
+                    't' => {new_string.push_str("\\t"); skip = true;}
+                    'r' => {new_string.push_str("\\r"); skip = true;}
+                    '\'' => {new_string.push_str("\\'"); skip = true;}
+                    '\"' => {new_string.push_str("\\\""); skip = true;}
+                    '\\' => {new_string.push_str("\\\\"); skip = true;}
+                    '{' => {new_string.push('{'); skip = true;}
+                    '}' => {new_string.push('}'); skip = true;}
+                    _ => {throw_error(&format!("Line {}: Invalid escape character '{}'", node.get_line_num(), next_char))}
+                }
+            } else if char == '{' {
+                // We are probably seeing the beginning of a formatter
+                if i == fstring.len() - 1 || fstring.as_bytes()[i + 1] as char != '}' {
+                    throw_error(&format!("Line {}: Invalid formatter, opening {{ without a closing }}, did you mean \"\\{{\"?",
+                                              node.get_line_num()));
+                }
+                if fstring.as_bytes()[i + 1] as char == '}' {
+                    num_formatters += 1;
+
+                    // Now we need to figure out what the type of the value being passed into the formatter is
+                    // First check to see if there are enough arguments passed in to match the current amount of formatters
+                    if node.children[1].children.len() - 1 < num_formatters {
+                        throw_error(&format!("Line {}: {} formatter(s) given to printf, but only {} format argument(s) passed in",
+                                                 node.get_line_num(), num_formatters, node.children[1].children.len() - 1));
+                    } else {
+                        let value = &node.children[1].children[num_formatters].children[0];
+
+                        if value.get_type() == "int" {
+                            new_string.push_str("%d");
+                            skip = true;
+                        } else {
+                            throw_error(&format!("Line {}: Invalid format type '{}' passed into printf, must only be int",
+                                                      node.get_line_num(), value.get_type()));
+                        }
+                    }
+                }
+            } else if char == '}' {
+                throw_error(&format!("Line {}: Invalid formatter, closing }} without an opening {{, did you mean \"\\}}\"?",
+                                          node.get_line_num()));
+            } else {
+                new_string.push(char);
+            }
+        }
+
+        // Check if too many format arguments were passed into printf
+        if node.children[1].children.len() - 1 != num_formatters {
+            throw_error(&format!("Line {}: {} format argument(s) passed into to printf, but only {} formatter(s) given",
+                                                 node.get_line_num(), node.children[1].children.len() - 1, num_formatters));
+        }
+
+        // new_string has successfully been formed, so we can store it for printing later
+        write_asm(asm_file, format!("{}: .string \"{}\"", get_label(label), new_string));
+        // Update the version in the AST
+        node.children[1].children[0].children[0].attr = Some(new_string);
+        // Create a symbol table and add it to the string node
+        node.children[1].children[0].children[0].add_sym(Rc::new(RefCell::new(Symbol::new(String::from("string"), String::from("string"), String::from("string")))));
+        // Keep track of that label for later
+        node.children[1].children[0].children[0].get_sym().borrow_mut().label = Some(label.clone());
+    }
+    /*
     if node.node_type == "string" {
         // Add the string, along with a label, to the top of the screen
         write_asm(asm_file, format!("{}: .string \"{}\"", get_label(label), node.get_attr()));
@@ -56,6 +134,7 @@ fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
         // Keep track of that label for later
         node.get_sym().borrow_mut().label = Some(label.clone());
     }
+    */
 
     // Visit children
     for child in &mut node.children {
@@ -94,6 +173,11 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String) -> 
             let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
             // Generate the printstr function call
             func_call_printstr(asm_file, &string_label, string.len());
+        } else if node.get_func_name() == "printf" {
+            // Get label of string
+            let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
+            // Generate the printf function call
+            func_call_printf(asm_file, node, &string_label);
         }
     }
 
@@ -164,6 +248,27 @@ fn func_call_printstr(asm_file: &mut File, string_label: &String, string_len: us
     write_asm(asm_file, format!("        adr     x1, {}", string_label));
     write_asm(asm_file, format!("        mov     x2, {}", string_len + 1));
     write_asm(asm_file, String::from("        bl      printstr1"));
+}
+
+fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String) {
+    let mut formatting = false;
+    write_asm(asm_file, format!("        adrp    x0, {}@PAGE", string_label));
+    write_asm(asm_file, format!("        add     x0, x0, {}@PAGEOFF", string_label));
+    for (i, param) in node.children[1].children.iter().enumerate() {
+        if i > 0 {
+            formatting = true;
+            write_asm(asm_file, format!("        mov     w{}, {}", i, param.children[0].get_attr()));
+            if i == 1 {
+                write_asm(asm_file, format!("        str     w{}, [sp, -32]!", i));
+            } else {
+                write_asm(asm_file, format!("        str     w{}, [sp, {}]", i, (i - 1) * 8));
+            }
+        }
+    }
+    write_asm(asm_file, String::from("        bl      _printf"));
+    if formatting {
+        write_asm(asm_file, format!("        add     sp, sp, 32"));
+    }
 }
 
 fn get_label(label: &mut String) -> String {

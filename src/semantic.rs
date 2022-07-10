@@ -164,6 +164,7 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     scope_stack.insert_symbol(String::from("printchar"), Rc::new(RefCell::new(Symbol::new(String::from("printchar"), String::from("f(int)"), String::from("void")))));
     scope_stack.insert_symbol(String::from("printint"), Rc::new(RefCell::new(Symbol::new(String::from("printint"), String::from("f(int)"), String::from("void")))));
     scope_stack.insert_symbol(String::from("printstr"), Rc::new(RefCell::new(Symbol::new(String::from("printstr"), String::from("f(string)"), String::from("void")))));
+    scope_stack.insert_symbol(String::from("printf"), Rc::new(RefCell::new(Symbol::new(String::from("printf"), String::from("f(string, ...)"), String::from("void")))));
 
     // Open a new scope for the global symbols in anticipation of the first pass
     scope_stack.open_scope();
@@ -444,8 +445,20 @@ fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
             Some(symbol) => {
                 // Make sure the func sig of the found function matches our function call
                 if symbol.borrow().type_sig != func_sig {
-                    throw_error(&format!("Line {}: Argument(s) for invocation of function '{}' do not match parameter(s)",
-                                              node.get_line_num(), func_name))
+                    // If the function declaration is printf, the func sigs don't have to match as long as...
+                    if symbol.borrow().type_sig == "f(string, ...)" {
+                        // Our function call sig begins with a string argument
+                        if func_sig.contains("f(string") {
+                            node.type_sig = Some(symbol.borrow().returns.clone());
+                            node.sym = Some(symbol.clone());
+                        } else {
+                            throw_error(&format!("Line {}: First argument passed into 'printf' must be a string literal",
+                                                      node.get_line_num()))
+                        }
+                    } else {
+                        throw_error(&format!("Line {}: Argument(s) for invocation of function '{}' do not match parameter(s)",
+                                                  node.get_line_num(), func_name))
+                    }
                 } else {
                     node.type_sig = Some(symbol.borrow().returns.clone());
                     node.sym = Some(symbol.clone());

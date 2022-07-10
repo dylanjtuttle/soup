@@ -1,5 +1,7 @@
 // Pretty self-explanatory, really
 
 func main() returns void {
-    printstr("Hello, world!\n");
+    printf("Hello, world!\n");
+    printf("Your number is: {}\n", 100);
+    printf("Ok, goodbye!\n");
 }

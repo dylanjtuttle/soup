@@ -44,6 +44,8 @@ fn main() {
     println!("\nBEGIN CODE GENERATION:\n");
 
     code_gen::code_gen("asm/test.asm", &mut ast);
+
+    print_ast(&ast);
 }
 
 pub fn throw_warning(msg: &str) {
