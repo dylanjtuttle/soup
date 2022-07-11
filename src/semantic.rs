@@ -588,7 +588,7 @@ fn pass5_post(node: &mut ASTNode, current_func_returns: &mut String) {
     }
 }
 
-fn is_binary(node: &ASTNode) -> bool {
+pub fn is_binary(node: &ASTNode) -> bool {
     node.node_type == "+" ||
     node.node_type == "+=" ||
     node.node_type == "-" ||
@@ -611,7 +611,7 @@ fn is_binary(node: &ASTNode) -> bool {
     node.node_type == "||"
 }
 
-fn is_unary(node: &ASTNode) -> bool {
+pub fn is_unary(node: &ASTNode) -> bool {
     node.node_type == "u-" ||
     node.node_type == "!"
 }

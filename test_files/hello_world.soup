@@ -1,9 +1,7 @@
 // Pretty self-explanatory, really
 
 func main() returns void {
-    printf("Hello, world!\nYour number is: {}\n", 100);
-}
-
-func param(int y) returns void {
-    ;
+    int x;
+    x = 1;
+    printf("Hello, world!\nx = {}\n", x);
 }
