@@ -180,6 +180,21 @@ fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String) -
     return false;
 }
 
+fn declare_variables(node: &mut ASTNode, current_offset: &mut i32) {
+    if node.node_type == "parameter" || node.node_type == "varDecl" {
+        // Add the local variable's offset to its symbol table entry
+        node.get_sym().borrow_mut().addr = Some(format!("[sp, {}]", *current_offset));
+
+        // Increment the current offset by the size of this local variable for next time
+        *current_offset += 4;
+    }
+
+    // Visit children
+    for child in &mut node.children {
+        declare_variables(child, current_offset);
+    }
+}
+
 // Calculate the number of bytes a function needs to allocate on the stack
 fn get_func_stack_alloc(node: &ASTNode) -> i32 {
     // Calculate the number of bytes we need to allocate on the stack for local variables
@@ -216,10 +231,18 @@ fn gen_func_enter(asm_file: &mut File, node: &mut ASTNode) {
     // Get number of bytes to allocate on the stack
     let num_bytes = get_func_stack_alloc(node);
 
+    // Calculate and store memory addresses for all local variables defined in this function
+    declare_variables(node, &mut 0);
+
     // Write function entry label
     write_asm(asm_file, format!("\n{}1:", node.get_func_name()));
     write_asm(asm_file, format!("        stp     x29, x30, [sp, -{}]!", num_bytes));
     write_asm(asm_file, String::from("        mov     x29, sp"));
+
+    // Store any parameters in their assigned memory locations
+    for (i, param) in node.children[1].children.iter().enumerate() {
+        write_asm(asm_file, format!("        str     x{}, {}", i, param.get_sym().borrow().get_addr()));
+    }
 }
 
 fn gen_func_exit(asm_file: &mut File, node: &mut ASTNode) {

@@ -193,15 +193,25 @@ impl ASTNode {
                         symbol_entry.borrow().type_sig,
                         symbol_entry.borrow().returns);
 
+                // Add label if it exists
                 let label_string = match &symbol_entry.borrow().label {
                     None => String::from(""),
                     Some(label) => {
-                        let temp = format!(", label: {}", label);
-                        temp
+                        format!(", label: {}", label)
                     }
                 };
 
                 sym_string.push_str(&label_string);
+
+                // Add memory address if it exists
+                let addr_string = match &symbol_entry.borrow().addr {
+                    None => String::from(""),
+                    Some(addr) => {
+                        format!(", addr: {}", addr)
+                    }
+                };
+
+                sym_string.push_str(&addr_string);
 
                 sym_string.push_str("}");
 

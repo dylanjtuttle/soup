@@ -101,18 +101,26 @@ pub struct Symbol {
     pub type_sig: String,
     pub returns: String,
     pub label: Option<String>,
+    pub addr: Option<String>,
 }
 
 impl Symbol {
     // Create a new symbol
     pub fn new(name: String, type_sig: String, returns: String) -> Self {
-        Symbol{name: name, type_sig: type_sig, returns: returns, label: None}
+        Symbol{name: name, type_sig: type_sig, returns: returns, label: None, addr: None}
     }
 
     pub fn get_label(&self) -> String {
         return match &self.label {
             None => String::from("LABEL"),  // Should never happen, indicates an error on my end
             Some(label) => label.clone()
+        }
+    }
+
+    pub fn get_addr(&self) -> String {
+        return match &self.addr {
+            None => String::from("ADDR"),  // Should never happen, indicates an error on my end
+            Some(addr) => addr.clone()
         }
     }
 }
