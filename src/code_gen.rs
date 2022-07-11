@@ -130,16 +130,6 @@ fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
         // Keep track of that label for later
         node.children[1].children[0].children[0].get_sym().borrow_mut().label = Some(label.clone());
     }
-    /*
-    if node.node_type == "string" {
-        // Add the string, along with a label, to the top of the screen
-        write_asm(asm_file, format!("{}: .string \"{}\"", get_label(label), node.get_attr()));
-        // Create a symbol table and add it to the string node
-        node.add_sym(Rc::new(RefCell::new(Symbol::new(String::from("string"), String::from("string"), String::from("string")))));
-        // Keep track of that label for later
-        node.get_sym().borrow_mut().label = Some(label.clone());
-    }
-    */
 
     // Visit children
     for child in &mut node.children {
@@ -165,7 +155,7 @@ fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
     traverse_post(asm_file, node, label);
 }
 
-fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String) -> bool {
+fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_enter(asm_file, node);
     }
@@ -182,7 +172,7 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String) -> 
     return false;
 }
 
-fn traverse_post(asm_file: &mut File, node: &mut ASTNode, label: &mut String) -> bool {
+fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_exit(asm_file, node);
     }
