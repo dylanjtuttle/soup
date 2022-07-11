@@ -39,9 +39,6 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
 
     // Begin traversing the AST and generating code
     traverse_prune(&mut asm_file, ast, &mut label);
-
-    // Append the code for the runtime library at the end of the file
-    runtime_lib(&mut asm_file);
 }
 
 // -----------------------------------------------------------------
@@ -288,19 +285,6 @@ fn get_label(label: &mut String) -> String {
 
     // Return the label, just for fun
     return label.clone();
-}
-
-fn runtime_lib(asm_file: &mut File) {
-    // printstr()
-    write_asm(asm_file, String::from("\nprintstr1:"));
-    write_asm(asm_file, String::from("        stp     x29, x30, [sp, -16]!"));
-    write_asm(asm_file, String::from("        mov     x29, sp"));
-    write_asm(asm_file, String::from("        mov     x0, 1  // stdout = 1"));
-    write_asm(asm_file, String::from("        mov     x16, 4  // Unix write syscall"));
-    write_asm(asm_file, String::from("        svc     0x80  // Execute syscall"));
-    write_asm(asm_file, String::from("printstr2:"));
-    write_asm(asm_file, String::from("        ldp     x29, x30, [sp], 16"));
-    write_asm(asm_file, String::from("        ret"));
 }
 
 fn write_asm(asm_file: &mut File, line: String) {
