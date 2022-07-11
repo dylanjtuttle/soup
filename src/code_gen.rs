@@ -85,6 +85,11 @@ fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
                 if fstring.as_bytes()[i + 1] as char == '}' {
                     num_formatters += 1;
 
+                    if num_formatters == 6 {
+                        throw_error(&format!("Line {}: printf only accepts 5 format arguments",
+                                                 node.get_line_num()));
+                    }
+
                     // Now we need to figure out what the type of the value being passed into the formatter is
                     // First check to see if there are enough arguments passed in to match the current amount of formatters
                     if node.children[1].children.len() - 1 < num_formatters {
@@ -166,14 +171,7 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String) -> 
     }
 
     if node.node_type == "funcCall" {
-        if node.get_func_name() == "printstr" {
-            // Get string
-            let string = node.children[1].children[0].children[0].get_attr();
-            // Get label of string
-            let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
-            // Generate the printstr function call
-            func_call_printstr(asm_file, &string_label, string.len());
-        } else if node.get_func_name() == "printf" {
+        if node.get_func_name() == "printf" {
             // Get label of string
             let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
             // Generate the printf function call
@@ -242,12 +240,6 @@ fn gen_func_exit(asm_file: &mut File, node: &mut ASTNode) {
     write_asm(asm_file, format!("{}2:", node.get_func_name()));
     write_asm(asm_file, format!("        ldp     x29, x30, [sp], {}", num_bytes));
     write_asm(asm_file, String::from("        ret"));
-}
-
-fn func_call_printstr(asm_file: &mut File, string_label: &String, string_len: usize) {
-    write_asm(asm_file, format!("        adr     x1, {}", string_label));
-    write_asm(asm_file, format!("        mov     x2, {}", string_len + 1));
-    write_asm(asm_file, String::from("        bl      printstr1"));
 }
 
 fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String) {
