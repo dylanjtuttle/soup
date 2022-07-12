@@ -572,9 +572,9 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                 // Move along to the next char
                 i += 1;
             }
-            _ => {
+            unrecognized => {
                 // If we haven't matched any tokens, throw a warning
-                throw_warning("Unrecognized token");
+                throw_warning(&format!("Unrecognized token '{}'", unrecognized));
                 i += 1;
             }
         }
