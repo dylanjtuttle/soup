@@ -96,12 +96,13 @@ impl ScopeStack {
 // -----------------------------------------------------------------
 
 #[derive(Clone)]
+#[derive(PartialEq)]
 pub struct Symbol {
     pub name: String,
     pub type_sig: String,
     pub returns: String,
     pub label: Option<String>,
-    pub addr: Option<String>,
+    pub addr: Option<i32>,
 }
 
 impl Symbol {
@@ -117,10 +118,10 @@ impl Symbol {
         }
     }
 
-    pub fn get_addr(&self) -> String {
+    pub fn get_addr(&self) -> i32 {
         return match &self.addr {
-            None => String::from("ADDR"),  // Should never happen, indicates an error on my end
-            Some(addr) => addr.clone()
+            None => -1,  // Should never happen, indicates an error on my end
+            Some(addr) => *addr
         }
     }
 }

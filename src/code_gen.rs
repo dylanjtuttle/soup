@@ -167,7 +167,7 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, re
         let lhs_addr = node.children[0].get_sym().borrow().get_addr();
         let rhs_reg = gen_expr(asm_file, node, regs);
 
-        write_asm(asm_file, format!("        str     w{}, {}", rhs_reg, lhs_addr));
+        write_asm(asm_file, format!("        str     w{}, [sp, {}]", rhs_reg, lhs_addr));
         free_reg(regs, rhs_reg);
     }
 
@@ -202,7 +202,7 @@ fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, _
 fn declare_variables(node: &mut ASTNode, current_offset: &mut i32) {
     if node.node_type == "parameter" || node.node_type == "varDecl" {
         // Add the local variable's offset to its symbol table entry
-        node.get_sym().borrow_mut().addr = Some(format!("[sp, {}]", *current_offset));
+        node.get_sym().borrow_mut().addr = Some(*current_offset);
 
         // Increment the current offset by the size of this local variable for next time
         *current_offset += 4;
@@ -329,7 +329,7 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>) -> i32 {
         // We have a local variable
         let reg = alloc_reg(regs);
         let addr = node.get_sym().borrow().get_addr();
-        write_asm(asm_file, format!("        ldr     w{}, {}", reg, addr));
+        write_asm(asm_file, format!("        ldr     w{}, [sp, {}]", reg, addr));
         return reg;
     }
 
@@ -351,7 +351,7 @@ fn gen_func_enter(asm_file: &mut File, node: &mut ASTNode) {
 
     // Store any parameters in their assigned memory locations
     for (i, param) in node.children[1].children.iter().enumerate() {
-        write_asm(asm_file, format!("        str     x{}, {}", i, param.get_sym().borrow().get_addr()));
+        write_asm(asm_file, format!("        str     x{}, [sp, {}]", i, param.get_sym().borrow().get_addr()));
     }
 }
 
@@ -376,6 +376,7 @@ fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, 
             let expr_reg = gen_expr(asm_file, &param.children[0], regs);
             if i == 1 {
                 write_asm(asm_file, format!("        str     w{}, [sp, -32]!", expr_reg));
+                increment_addrs(&node.children[1], 32, &mut vec![]);
             } else {
                 write_asm(asm_file, format!("        str     w{}, [sp, {}]", expr_reg, (i - 1) * 8));
             }
@@ -385,6 +386,30 @@ fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, 
     write_asm(asm_file, String::from("        bl      _printf"));
     if formatting {
         write_asm(asm_file, format!("        add     sp, sp, 32"));
+        increment_addrs(&node.children[1], -32, &mut vec![]);
+    }
+}
+
+fn increment_addrs(node: &ASTNode, increment: i32, already_incremented: &mut Vec<Rc<RefCell<Symbol>>>) {
+    match &node.sym {
+        None => {}
+        Some(sym) => {
+            if !already_incremented.contains(sym) {
+                already_incremented.push(Rc::clone(sym));
+
+                match &mut sym.borrow_mut().addr {
+                    None => {}
+                    Some(addr) => {
+                        *addr += increment;
+                    }
+                }
+            }
+        }
+    }
+
+    // Visit children
+    for child in &node.children {
+        increment_addrs(child, increment, already_incremented);
     }
 }
 
