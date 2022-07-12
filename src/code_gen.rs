@@ -39,7 +39,7 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
     // ----------------------------------------------------------------------------------
 
     // Begin traversing the AST and generating code
-    traverse_prune(&mut asm_file, ast, &mut label, &mut 8);
+    traverse_prune(&mut asm_file, ast, &mut label, &mut vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 }
 
 // -----------------------------------------------------------------
@@ -135,10 +135,10 @@ fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
     }
 }
 
-fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, current_reg: &mut i32) {
+fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>) {
     // Do something with the node before you visit its children,
     // and possibly return without visiting children if do_prune = true
-    let do_prune = traverse_pre(asm_file, node, label, current_reg);
+    let do_prune = traverse_pre(asm_file, node, label, regs);
 
     if do_prune {
         return;
@@ -146,24 +146,29 @@ fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, c
 
     // Visit children
     for child in &mut node.children {
-        traverse_prune(asm_file, child, label, current_reg);
+        traverse_prune(asm_file, child, label, regs);
     }
 
     // Do something again with the node
-    traverse_post(asm_file, node, label, current_reg);
+    traverse_post(asm_file, node, label, regs);
 }
 
-fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, current_reg: &mut i32) -> bool {
+fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, regs: &mut Vec<i32>) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_enter(asm_file, node);
     }
 
-    if node.node_type == "=" {
+    if node.node_type == "="
+    || node.node_type == "+="
+    || node.node_type == "-="
+    || node.node_type == "*="
+    || node.node_type == "/="
+    || node.node_type == "%=" {
         let lhs_addr = node.children[0].get_sym().borrow().get_addr();
-        let rhs_reg = gen_expr(asm_file, &mut node.children[1], current_reg);
+        let rhs_reg = gen_expr(asm_file, node, regs);
 
         write_asm(asm_file, format!("        str     w{}, {}", rhs_reg, lhs_addr));
-        free_reg(current_reg);
+        free_reg(regs, rhs_reg);
     }
 
     if node.node_type == "funcCall" {
@@ -171,13 +176,13 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, cu
             // Get label of string
             let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
             // Generate the printf function call
-            func_call_printf(asm_file, node, &string_label, current_reg);
+            func_call_printf(asm_file, node, &string_label, regs);
         } else {
             // Loop through any arguments and put them in the argument passing registers
             for (i, arg) in node.children[1].children.iter().enumerate() {
-                let expr_reg = gen_expr(asm_file, &arg.children[0], current_reg);
+                let expr_reg = gen_expr(asm_file, &arg.children[0], regs);
                 write_asm(asm_file, format!("        mov     w{}, w{}", i, expr_reg));
-                free_reg(current_reg);
+                free_reg(regs, expr_reg);
             }
             write_asm(asm_file, format!("        bl      {}1", node.get_sym().borrow().name));
         }
@@ -186,7 +191,7 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, cu
     return false;
 }
 
-fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, _current_reg: &mut i32) -> bool {
+fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, _regs: &mut Vec<i32>) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_exit(asm_file, node);
     }
@@ -238,35 +243,91 @@ fn get_func_var_alloc(node: &ASTNode) -> i32 {
     return num_bytes;
 }
 
-fn gen_expr(asm_file: &mut File, node: &ASTNode, current_reg: &mut i32) -> i32 {
+fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>) -> i32 {
     if is_binary(node) {
         // Generate the expressions on either side of the operator, each returned in a register
-        let _lhs = gen_expr(asm_file, &node.children[0], current_reg);
-        let _rhs = gen_expr(asm_file, &node.children[1], current_reg);
+        let lhs = gen_expr(asm_file, &node.children[0], regs);
+        let rhs = gen_expr(asm_file, &node.children[1], regs);
+        let dest = alloc_reg(regs);
+
+        if node.node_type == "=" {
+            free_reg(regs, lhs);
+            free_reg(regs, dest);
+            return rhs;
+
+        } else if node.node_type == "+" {
+            write_asm(asm_file, format!("        add     w{}, w{}, w{}", dest, lhs, rhs));
+            free_reg(regs, lhs);
+            free_reg(regs, rhs);
+            return dest;
+
+        } else if node.node_type == "+=" {
+            write_asm(asm_file, format!("        add     w{}, w{}, w{}", lhs, lhs, rhs));
+            free_reg(regs, dest);
+            free_reg(regs, rhs);
+            return lhs;
+
+        } else if node.node_type == "-" {
+            write_asm(asm_file, format!("        sub     w{}, w{}, w{}", dest, lhs, rhs));
+            free_reg(regs, lhs);
+            free_reg(regs, rhs);
+            return dest;
+
+        } else if node.node_type == "-=" {
+            write_asm(asm_file, format!("        sub     w{}, w{}, w{}", lhs, lhs, rhs));
+            free_reg(regs, dest);
+            free_reg(regs, rhs);
+            return lhs;
+
+        } else if node.node_type == "*" {
+            write_asm(asm_file, format!("        mul     w{}, w{}, w{}", dest, lhs, rhs));
+            free_reg(regs, lhs);
+            free_reg(regs, rhs);
+            return dest;
+
+        } else if node.node_type == "*=" {
+            write_asm(asm_file, format!("        mul     w{}, w{}, w{}", lhs, lhs, rhs));
+            free_reg(regs, dest);
+            free_reg(regs, rhs);
+            return lhs;
+
+        } else if node.node_type == "/" {
+            write_asm(asm_file, format!("        sdiv    w{}, w{}, w{}", dest, lhs, rhs));
+            free_reg(regs, lhs);
+            free_reg(regs, rhs);
+            return dest;
+
+        } else if node.node_type == "/=" {
+            write_asm(asm_file, format!("        sdiv    w{}, w{}, w{}", lhs, lhs, rhs));
+            free_reg(regs, dest);
+            free_reg(regs, rhs);
+            return lhs;
+
+        }
 
     } else if is_unary(node) {
         // Generate the expression on the right side of the operator, returned in a register
-        let _rhs = gen_expr(asm_file, &node.children[0], current_reg);
+        let _rhs = gen_expr(asm_file, &node.children[0], regs);
 
     } else if node.node_type == "number" {
         // Allocate a register, move the number into it, and return it
-        let reg = alloc_reg(current_reg);
+        let reg = alloc_reg(regs);
         write_asm(asm_file, format!("        mov     w{}, {}", reg, node.get_attr()));
         return reg;
 
     } else if node.node_type == "true" {
-        let reg = alloc_reg(current_reg);
+        let reg = alloc_reg(regs);
         write_asm(asm_file, format!("        mov     w{}, 1", reg));
         return reg;
 
     } else if node.node_type == "false" {
-        let reg = alloc_reg(current_reg);
+        let reg = alloc_reg(regs);
         write_asm(asm_file, format!("        mov     w{}, 0", reg));
         return reg;
         
     } else if node.node_type == "id" {
         // We have a local variable
-        let reg = alloc_reg(current_reg);
+        let reg = alloc_reg(regs);
         let addr = node.get_sym().borrow().get_addr();
         write_asm(asm_file, format!("        ldr     w{}, {}", reg, addr));
         return reg;
@@ -305,20 +366,20 @@ fn gen_func_exit(asm_file: &mut File, node: &mut ASTNode) {
     write_asm(asm_file, String::from("        ret"));
 }
 
-fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, current_reg: &mut i32) {
+fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, regs: &mut Vec<i32>) {
     let mut formatting = false;
     write_asm(asm_file, format!("        adrp    x0, {}@PAGE", string_label));
     write_asm(asm_file, format!("        add     x0, x0, {}@PAGEOFF", string_label));
     for (i, param) in node.children[1].children.iter().enumerate() {
         if i > 0 {
             formatting = true;
-            let expr_reg = gen_expr(asm_file, &param.children[0], current_reg);
+            let expr_reg = gen_expr(asm_file, &param.children[0], regs);
             if i == 1 {
                 write_asm(asm_file, format!("        str     w{}, [sp, -32]!", expr_reg));
             } else {
                 write_asm(asm_file, format!("        str     w{}, [sp, {}]", expr_reg, (i - 1) * 8));
             }
-            free_reg(current_reg);
+            free_reg(regs, expr_reg);
         }
     }
     write_asm(asm_file, String::from("        bl      _printf"));
@@ -327,38 +388,23 @@ fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, 
     }
 }
 
-fn alloc_reg(current_reg: &mut i32) -> i32 {
+fn alloc_reg(regs: &mut Vec<i32>) -> i32 {
     // Usable registers are 9 - 15 (not saved), 19 - 28 (saved)
 
-    // If we've reached the end of the caller-saved registers, move to the set of callee-saved registers
-    if *current_reg == 15 {
-        *current_reg = 19;
-    } else if *current_reg == 28 {
-        // If we've run out of registers completely, throw an error
-        throw_error("Calculation too compilated, ran out of registers");
-    } else {
-        // Otherwise, we can simply increment the register number
-        *current_reg += 1;
+    for (i, reg) in regs.iter_mut().enumerate() {
+        if *reg == 0 {
+            *reg = 1;
+            return (i + 9) as i32;
+        }
     }
-
-    *current_reg
+    // If we've made it through the whole list and run out of registers completely, throw an error
+    throw_error("Calculation too compilated, ran out of registers");
+    return 0;
 }
 
-fn free_reg(current_reg: &mut i32) -> i32 {
+fn free_reg(regs: &mut Vec<i32>, to_free: i32) {
     // Usable registers are 9 - 15 (not saved), 19 - 28 (saved)
-
-    // If we've reached the end of the callee-saved registers, move to the set of caller-saved registers
-    if *current_reg == 19 {
-        *current_reg = 15;
-    } else if *current_reg == 8 {
-        // If we're trying to free a register but we don't have any currently allocated, throw and error
-        throw_error("No registers to free");
-    } else {
-        // Otherwise, we can simply decrement the register number
-        *current_reg -= 1;
-    }
-
-    *current_reg
+    regs[(to_free - 9) as usize] = 0;
 }
 
 fn get_label(label: &mut String) -> String {

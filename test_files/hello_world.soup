@@ -2,6 +2,11 @@
 
 func main() returns void {
     int x;
-    x = 1;
-    printf("Hello, world!\nx = {}\n", x);
+    x = 2 * 3;
+
+    int y;
+    y = 2;
+    y += 1;
+
+    printf("Hello, world!\nx = {}\ny = {}\nx/y = {}\n", x, y, x / y);
 }
