@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use crate::throw_warning;
+use crate::throw_error;
 
 pub struct Token {
     pub name: TokenName,
@@ -328,7 +328,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     i += 1;
                 } else {
                     // Otherwise, this is an invalid token
-                    throw_warning("Unrecognized token");
+                    throw_error(&format!("Unrecognized token '{}'", ch));
                 }
 
                 // Move along to the next char
@@ -344,7 +344,7 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                     i += 1;
                 } else {
                     // Otherwise, this is an invalid token
-                    throw_warning("OOO Unrecognized token");
+                    throw_error(&format!("Unrecognized token '{}'", ch));
                 }
 
                 // Move along to the next char
@@ -573,8 +573,8 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
                 i += 1;
             }
             unrecognized => {
-                // If we haven't matched any tokens, throw a warning
-                throw_warning(&format!("Unrecognized token '{}'", unrecognized));
+                // If we haven't matched any tokens, throw an error
+                throw_error(&format!("Unrecognized token '{}'", unrecognized));
                 i += 1;
             }
         }
