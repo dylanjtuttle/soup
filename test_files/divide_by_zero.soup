@@ -1,0 +1,17 @@
+// Test the runtime error for division by zero
+
+func main() returns void {
+    // Define x = 1
+    int x;
+    x = 1;
+    printf("x = {}\n", x);
+
+    // Define y = 0 in a roundabout way
+    int y;
+    y = 1;
+    y -= 1;
+    printf("y = {}\n", y);
+
+    // Print x / y
+    printf("x / y = {}\n", x / y);
+}
