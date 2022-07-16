@@ -35,11 +35,15 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
     write_asm(&mut asm_file, String::from("        bl      main1"));
 
     write_asm(&mut asm_file, String::from("end:    ldp     x29, x30, [sp], 16"));
-    write_asm(&mut asm_file, String::from("        ret"));
+
+    // Exit the program
+    write_asm(&mut asm_file, format!("        mov     x0, 0  // Return code 0"));
+    write_asm(&mut asm_file, format!("        mov     x16, 1  // Sys call code to terminate program"));
+    write_asm(&mut asm_file, format!("        svc     0x80  // Make system call"));
     // ----------------------------------------------------------------------------------
 
     // Begin traversing the AST and generating code
-    traverse_prune(&mut asm_file, ast, &mut label, &mut vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    traverse_prune(&mut asm_file, ast, &mut label, &mut vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], &mut String::from(""));
 }
 
 // -----------------------------------------------------------------
@@ -135,10 +139,10 @@ fn gen_strings(asm_file: &mut File, node: &mut ASTNode, label: &mut String) {
     }
 }
 
-fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>) {
+fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>, current_func_name: &mut String) {
     // Do something with the node before you visit its children,
     // and possibly return without visiting children if do_prune = true
-    let do_prune = traverse_pre(asm_file, node, label, regs);
+    let do_prune = traverse_pre(asm_file, node, label, regs, current_func_name);
 
     if do_prune {
         return;
@@ -146,16 +150,17 @@ fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, r
 
     // Visit children
     for child in &mut node.children {
-        traverse_prune(asm_file, child, label, regs);
+        traverse_prune(asm_file, child, label, regs, current_func_name);
     }
 
     // Do something again with the node
-    traverse_post(asm_file, node, label, regs);
+    traverse_post(asm_file, node, label, regs, current_func_name);
 }
 
-fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>) -> bool {
+fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>, current_func_name: &mut String) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_enter(asm_file, node);
+        *current_func_name = node.get_sym().borrow().name.clone();
     }
 
     if node.node_type == "="
@@ -169,31 +174,35 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String, reg
 
         write_asm(asm_file, format!("        str     w{}, [sp, {}]", rhs_reg, lhs_addr));
         free_reg(regs, rhs_reg);
+
+        return true;
     }
 
     if node.node_type == "funcCall" {
-        if node.get_func_name() == "printf" {
-            // Get label of string
-            let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
-            // Generate the printf function call
-            func_call_printf(asm_file, node, &string_label, regs, label);
-        } else {
-            // Loop through any arguments and put them in the argument passing registers
-            for (i, arg) in node.children[1].children.iter().enumerate() {
-                let expr_reg = gen_expr(asm_file, &arg.children[0], regs, label);
-                write_asm(asm_file, format!("        mov     w{}, w{}", i, expr_reg));
-                free_reg(regs, expr_reg);
-            }
-            write_asm(asm_file, format!("        bl      {}1", node.get_sym().borrow().name));
+        gen_func_call(asm_file, node, label, regs);
+    }
+
+    if node.node_type == "return" {
+        if node.children.len() > 0 {
+            // If we have a non-empty return statement, generate the expression and store it in the function return register
+            let expr = gen_expr(asm_file, &mut node.children[0], regs, label);
+
+            write_asm(asm_file, format!("        mov     w0, w{}", expr));
+            free_reg(regs, expr);
+
+            // Jump to the function exit
+            write_asm(asm_file, format!("        b       {}2", current_func_name));
+            return true;
         }
     }
 
     return false;
 }
 
-fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, _regs: &mut Vec<i32>) -> bool {
+fn traverse_post(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, _regs: &mut Vec<i32>, current_func_name: &mut String) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_exit(asm_file, node);
+        *current_func_name = String::from("");
     }
 
     return false;
@@ -292,13 +301,13 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>, current_la
             return lhs;
 
         } else if node.node_type == "/" {
-            gen_division(asm_file, node, dest, lhs, rhs, regs, current_label);
+            gen_division(asm_file, node, dest, lhs, rhs, current_label);
             free_reg(regs, lhs);
             free_reg(regs, rhs);
             return dest;
 
         } else if node.node_type == "/=" {
-            gen_division(asm_file, node, lhs, lhs, rhs, regs, current_label);
+            gen_division(asm_file, node, lhs, lhs, rhs, current_label);
             free_reg(regs, dest);
             free_reg(regs, rhs);
             return lhs;
@@ -307,7 +316,16 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>, current_la
 
     } else if is_unary(node) {
         // Generate the expression on the right side of the operator, returned in a register
-        let _rhs = gen_expr(asm_file, &node.children[0], regs, current_label);
+        let rhs = gen_expr(asm_file, &node.children[0], regs, current_label);
+
+        if node.node_type == "u-" {
+            write_asm(asm_file, format!("        neg     w{}, w{}", rhs, rhs));
+            return rhs;
+
+        } else if node.node_type == "!" {
+            write_asm(asm_file, format!("        not     w{}, w{}", rhs, rhs));
+            return rhs;
+        }
 
     } else if node.node_type == "number" {
         // Allocate a register, move the number into it, and return it
@@ -331,12 +349,18 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>, current_la
         let addr = node.get_sym().borrow().get_addr();
         write_asm(asm_file, format!("        ldr     w{}, [sp, {}]", reg, addr));
         return reg;
+
+    } else if node.node_type == "funcCall" {
+        gen_func_call(asm_file, &mut node.clone(), current_label, regs);
+        let reg = alloc_reg(regs);
+        write_asm(asm_file, format!("        mov     w{}, w0", reg));
+        return reg;
     }
 
     return 0;
 }
 
-fn gen_division(asm_file: &mut File, node: &ASTNode, dest: i32, lhs: i32, rhs: i32, regs: &mut Vec<i32>, current_label: &mut String) {
+fn gen_division(asm_file: &mut File, node: &ASTNode, dest: i32, lhs: i32, rhs: i32, current_label: &mut String) {
     // Generate labels
     let div_label = get_label(current_label);
     let after_label = get_label(current_label);
@@ -352,17 +376,36 @@ fn gen_division(asm_file: &mut File, node: &ASTNode, dest: i32, lhs: i32, rhs: i
     // Define error string
     write_asm(asm_file, format!("{}:", div_label));
     write_asm(asm_file, format!(".data"));
-    write_asm(asm_file, format!("{}: .string \"Error: Line {}: Division by zero\\n\"", get_label(current_label), node.get_line_num()));
+    write_asm(asm_file, format!("div_zero: .string \"Error: Line {}: Division by zero\\n\"", node.get_line_num()));
     write_asm(asm_file, format!(".align 4"));
     write_asm(asm_file, format!(".text"));
     // Call printf
-    func_call_printf(asm_file, node, &(current_label.clone()), regs, current_label);
+    write_asm(asm_file, format!("        adrp    x0, div_zero@PAGE"));
+    write_asm(asm_file, format!("        add     x0, x0, div_zero@PAGEOFF"));
+    write_asm(asm_file, format!("        bl      _printf"));
     // Exit the program
     write_asm(asm_file, format!("        mov     x0, 1  // Return code 1"));
     write_asm(asm_file, format!("        mov     x16, 1  // Sys call code to terminate program"));
     write_asm(asm_file, format!("        svc     0x80  // Make system call"));
     // Move on and free registers
     write_asm(asm_file, format!("{}:", after_label));
+}
+
+fn gen_func_call(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>) {
+    if node.get_func_name() == "printf" {
+        // Get label of string
+        let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
+        // Generate the printf function call
+        func_call_printf(asm_file, node, &string_label, regs, label);
+    } else {
+        // Loop through any arguments and put them in the argument passing registers
+        for (i, arg) in node.children[1].children.iter().enumerate() {
+            let expr_reg = gen_expr(asm_file, &arg.children[0], regs, label);
+            write_asm(asm_file, format!("        mov     w{}, w{}", i, expr_reg));
+            free_reg(regs, expr_reg);
+        }
+        write_asm(asm_file, format!("        bl      {}1", node.get_sym().borrow().name));
+    }
 }
 
 fn gen_func_enter(asm_file: &mut File, node: &mut ASTNode) {
@@ -385,6 +428,23 @@ fn gen_func_enter(asm_file: &mut File, node: &mut ASTNode) {
 }
 
 fn gen_func_exit(asm_file: &mut File, node: &mut ASTNode) {
+    // Generate an error message if function is non-void
+    if node.get_sym().borrow().returns != "void" {
+        // Define error string
+        write_asm(asm_file, format!(".data"));
+        write_asm(asm_file, format!("no_ret: .string \"Error: Line {}: A control path reaches the end of a non-void function without returning a value\\n\"", node.get_line_num()));
+        write_asm(asm_file, format!(".align 4"));
+        write_asm(asm_file, format!(".text"));
+        // Call printf
+        write_asm(asm_file, format!("        adrp    x0, no_ret@PAGE"));
+        write_asm(asm_file, format!("        add     x0, x0, no_ret@PAGEOFF"));
+        write_asm(asm_file, format!("        bl      _printf"));
+        // Exit the program
+        write_asm(asm_file, format!("        mov     x0, 1  // Return code 1"));
+        write_asm(asm_file, format!("        mov     x16, 1  // Sys call code to terminate program"));
+        write_asm(asm_file, format!("        svc     0x80  // Make system call"));
+    }
+
     // Get number of bytes to allocate on the stack
     let num_bytes = get_func_stack_alloc(node);
 

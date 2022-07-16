@@ -1,0 +1,11 @@
+// Test basic function calls with no parameters and no return values
+
+func main() returns void {
+    test_func();
+}
+
+func test_func() returns void {
+    int x;
+    x = 1;
+    printf("x = {}\n", x);
+}

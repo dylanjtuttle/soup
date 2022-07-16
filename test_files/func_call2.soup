@@ -1,0 +1,12 @@
+// Test function calls with parameters and return value
+
+func main() returns void {
+    int z;
+    z = test_func(1, 2);
+    printf("z + 1 = {}\n", z + 1);
+}
+
+func test_func(int x, int y) returns int {
+    printf("x + y = {}\n", x + y);
+    return x + y;
+}
