@@ -153,7 +153,7 @@ fn traverse_prune(asm_file: &mut File, node: &mut ASTNode, label: &mut String, r
     traverse_post(asm_file, node, label, regs);
 }
 
-fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, regs: &mut Vec<i32>) -> bool {
+fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, label: &mut String, regs: &mut Vec<i32>) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_enter(asm_file, node);
     }
@@ -165,7 +165,7 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, re
     || node.node_type == "/="
     || node.node_type == "%=" {
         let lhs_addr = node.children[0].get_sym().borrow().get_addr();
-        let rhs_reg = gen_expr(asm_file, node, regs);
+        let rhs_reg = gen_expr(asm_file, node, regs, label);
 
         write_asm(asm_file, format!("        str     w{}, [sp, {}]", rhs_reg, lhs_addr));
         free_reg(regs, rhs_reg);
@@ -176,11 +176,11 @@ fn traverse_pre(asm_file: &mut File, node: &mut ASTNode, _label: &mut String, re
             // Get label of string
             let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
             // Generate the printf function call
-            func_call_printf(asm_file, node, &string_label, regs);
+            func_call_printf(asm_file, node, &string_label, regs, label);
         } else {
             // Loop through any arguments and put them in the argument passing registers
             for (i, arg) in node.children[1].children.iter().enumerate() {
-                let expr_reg = gen_expr(asm_file, &arg.children[0], regs);
+                let expr_reg = gen_expr(asm_file, &arg.children[0], regs, label);
                 write_asm(asm_file, format!("        mov     w{}, w{}", i, expr_reg));
                 free_reg(regs, expr_reg);
             }
@@ -243,11 +243,11 @@ fn get_func_var_alloc(node: &ASTNode) -> i32 {
     return num_bytes;
 }
 
-fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>) -> i32 {
+fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>, current_label: &mut String) -> i32 {
     if is_binary(node) {
         // Generate the expressions on either side of the operator, each returned in a register
-        let lhs = gen_expr(asm_file, &node.children[0], regs);
-        let rhs = gen_expr(asm_file, &node.children[1], regs);
+        let lhs = gen_expr(asm_file, &node.children[0], regs, current_label);
+        let rhs = gen_expr(asm_file, &node.children[1], regs, current_label);
         let dest = alloc_reg(regs);
 
         if node.node_type == "=" {
@@ -292,13 +292,13 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>) -> i32 {
             return lhs;
 
         } else if node.node_type == "/" {
-            write_asm(asm_file, format!("        sdiv    w{}, w{}, w{}", dest, lhs, rhs));
+            gen_division(asm_file, node, dest, lhs, rhs, regs, current_label);
             free_reg(regs, lhs);
             free_reg(regs, rhs);
             return dest;
 
         } else if node.node_type == "/=" {
-            write_asm(asm_file, format!("        sdiv    w{}, w{}, w{}", lhs, lhs, rhs));
+            gen_division(asm_file, node, lhs, lhs, rhs, regs, current_label);
             free_reg(regs, dest);
             free_reg(regs, rhs);
             return lhs;
@@ -307,7 +307,7 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>) -> i32 {
 
     } else if is_unary(node) {
         // Generate the expression on the right side of the operator, returned in a register
-        let _rhs = gen_expr(asm_file, &node.children[0], regs);
+        let _rhs = gen_expr(asm_file, &node.children[0], regs, current_label);
 
     } else if node.node_type == "number" {
         // Allocate a register, move the number into it, and return it
@@ -334,6 +334,35 @@ fn gen_expr(asm_file: &mut File, node: &ASTNode, regs: &mut Vec<i32>) -> i32 {
     }
 
     return 0;
+}
+
+fn gen_division(asm_file: &mut File, node: &ASTNode, dest: i32, lhs: i32, rhs: i32, regs: &mut Vec<i32>, current_label: &mut String) {
+    // Generate labels
+    let div_label = get_label(current_label);
+    let after_label = get_label(current_label);
+
+    // If denominator is zero, jump over division to error call
+    write_asm(asm_file, format!("        cmp     w{}, wzr", rhs));
+    write_asm(asm_file, format!("        b.eq    {}", div_label));
+
+    // Otherwise, perform division and jump over error
+    write_asm(asm_file, format!("        sdiv    w{}, w{}, w{}", dest, lhs, rhs));
+    write_asm(asm_file, format!("        b       {}", after_label));
+
+    // Define error string
+    write_asm(asm_file, format!("{}:", div_label));
+    write_asm(asm_file, format!(".data"));
+    write_asm(asm_file, format!("{}: .string \"Error: Line {}: Division by zero\\n\"", get_label(current_label), node.get_line_num()));
+    write_asm(asm_file, format!(".align 4"));
+    write_asm(asm_file, format!(".text"));
+    // Call printf
+    func_call_printf(asm_file, node, &(current_label.clone()), regs, current_label);
+    // Exit the program
+    write_asm(asm_file, format!("        mov     x0, 1  // Return code 1"));
+    write_asm(asm_file, format!("        mov     x16, 1  // Sys call code to terminate program"));
+    write_asm(asm_file, format!("        svc     0x80  // Make system call"));
+    // Move on and free registers
+    write_asm(asm_file, format!("{}:", after_label));
 }
 
 fn gen_func_enter(asm_file: &mut File, node: &mut ASTNode) {
@@ -366,14 +395,14 @@ fn gen_func_exit(asm_file: &mut File, node: &mut ASTNode) {
     write_asm(asm_file, String::from("        ret"));
 }
 
-fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, regs: &mut Vec<i32>) {
+fn func_call_printf(asm_file: &mut File, node: &ASTNode, string_label: &String, regs: &mut Vec<i32>, current_label: &mut String) {
     let mut formatting = false;
     write_asm(asm_file, format!("        adrp    x0, {}@PAGE", string_label));
     write_asm(asm_file, format!("        add     x0, x0, {}@PAGEOFF", string_label));
     for (i, param) in node.children[1].children.iter().enumerate() {
         if i > 0 {
             formatting = true;
-            let expr_reg = gen_expr(asm_file, &param.children[0], regs);
+            let expr_reg = gen_expr(asm_file, &param.children[0], regs, current_label);
             if i == 1 {
                 write_asm(asm_file, format!("        str     w{}, [sp, -32]!", expr_reg));
                 increment_addrs(&node.children[1], 32, &mut vec![]);

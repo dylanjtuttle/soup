@@ -5,8 +5,8 @@ func main() returns void {
     x = 2 * 3;
 
     int y;
-    y = 2;
-    y += 1;
+    y = 1;
+    y -= 1;
 
     printf("Hello, world!\n");
     printf("x = {}\ny = {}\n", x, y);
