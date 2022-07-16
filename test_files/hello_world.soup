@@ -1,14 +1,5 @@
 // Pretty self-explanatory, really
 
 func main() returns void {
-    int x;
-    x = 2 * 3;
-
-    int y;
-    y = 1;
-    y -= 1;
-
     printf("Hello, world!\n");
-    printf("x = {}\ny = {}\n", x, y);
-    printf("x/y = {}\n", x / y);
 }
