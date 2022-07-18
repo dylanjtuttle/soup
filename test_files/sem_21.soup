@@ -2,8 +2,8 @@
 
 func main() returns void {
     if 1 {
-        printstr("One!");
+        printf("One!");
     } else {
-        printstr("Zero?");
+        printf("Zero?");
     }
 }
