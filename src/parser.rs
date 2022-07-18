@@ -3,7 +3,8 @@ use std::io::Write;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::{scanner::{Token, TokenName}, throw_error, semantic::Symbol};
+use crate::scanner::scanner_data::{Token, TokenType};
+use crate::{throw_error, semantic::Symbol};
 
 #[derive(Clone)]
 pub struct ASTNode {
@@ -276,7 +277,7 @@ fn start_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Create the root program node for this code file
     let mut ast_root = ASTNode::new("program", None, None);
 
-    if tokens[0].name != TokenName::EOF {
+    if tokens[0].token_type != TokenType::EOF {
         // If this was an empty file, the first (and only) token would be EOF,
         // in which case we would just return the program node. However, since this file
         // is non-empty, we can parse through it and create our AST:
@@ -302,11 +303,11 @@ fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
                                                       Some(current_token.line_num));
 
     // Update the literal node type to correspond to the token we see
-    match current_token.name {
-        TokenName::INTLIT => {literal_node.node_type = String::from("number");}
-        TokenName::STRLIT => {literal_node.node_type = String::from("string");}
-        TokenName::TRUE => {literal_node.node_type = String::from("true");}
-        TokenName::FALSE => {literal_node.node_type = String::from("false");}
+    match current_token.token_type {
+        TokenType::INTLIT => {literal_node.node_type = String::from("number");}
+        TokenType::STRLIT => {literal_node.node_type = String::from("string");}
+        TokenType::TRUE => {literal_node.node_type = String::from("true");}
+        TokenType::FALSE => {literal_node.node_type = String::from("false");}
         _ => {
             throw_error(&format!("Syntax Error on line {}: literal must be an integer, string, \"true\", or \"false\"",
                         tokens[*current + 1].line_num));
@@ -334,9 +335,9 @@ fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
                                                    Some(current_token.line_num));
 
     // Update the type node type to correspond to the token we see
-    match current_token.name {
-        TokenName::INT => {type_node.node_type = String::from("int");}
-        TokenName::BOOL => {type_node.node_type = String::from("bool");}
+    match current_token.token_type {
+        TokenType::INT => {type_node.node_type = String::from("int");}
+        TokenType::BOOL => {type_node.node_type = String::from("bool");}
         _ => {
             throw_error(&format!("Syntax Error on line {}: type must be one of \"int\", \"bool\"",
             tokens[*current + 1].line_num));
@@ -361,7 +362,7 @@ fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode>
     let mut children_vec = Vec::new();
 
     // Loop until we reach the end of the file
-    while current_token.name != TokenName::EOF {
+    while current_token.token_type != TokenType::EOF {
         children_vec.push(globaldeclaration_(tokens, current));
         current_token = &tokens[*current];
     }
@@ -379,12 +380,12 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let current_token = &tokens[*current];
 
     // We have to find out what kind of global declaration this is, or throw an error if our token doesn't match
-    if current_token.name == TokenName::FUNC {
+    if current_token.token_type == TokenType::FUNC {
         // We have a function declaration, so we just need to find out if it's a main function or just a regular one
-        if tokens[*current + 1].name == TokenName::MAIN {
+        if tokens[*current + 1].token_type == TokenType::MAIN {
             // We have a main function
             return mainfunctiondeclaration_(tokens, current);
-        } else if tokens[*current + 1].name == TokenName::ID {
+        } else if tokens[*current + 1].token_type == TokenType::ID {
             // We have a regular function
             return functiondeclaration_(tokens, current);
         } else {
@@ -392,7 +393,7 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
                         tokens[*current + 1].line_num));
         }
 
-    } else if current_token.name == TokenName::INT || current_token.name == TokenName::BOOL {
+    } else if current_token.token_type == TokenType::INT || current_token.token_type == TokenType::BOOL {
         // We have a variable declaration
         let mut glob_var_decl = variabledeclaration_(tokens, current);
 
@@ -430,7 +431,7 @@ fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
     // Check to see if current token is a semicolon - if not, throw syntax error
     current_token = &tokens[*current];
-    if current_token.name != TokenName::SEMICOLON {
+    if current_token.token_type != TokenType::SEMICOLON {
         throw_error(&format!("Syntax Error on line {}: variable declaration must end with a semicolon \";\"",
                     current_token.line_num));
     }
@@ -450,7 +451,7 @@ fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
-    if current_token.name != TokenName::ID {
+    if current_token.token_type != TokenType::ID {
         throw_error(&format!("Syntax Error on line {}: expected an identifier",
                     current_token.line_num));
     }
@@ -497,7 +498,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     let mut node_vec = Vec::new();
 
     // A function header always starts with a "func" keyword, otherwise we have a syntax error
-    if current_token.name != TokenName::FUNC {
+    if current_token.token_type != TokenType::FUNC {
         throw_error(&format!("Syntax Error on line {}: function declaration must always start with a \"func\" keyword",
                     current_token.line_num));
     }
@@ -511,7 +512,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
 
     // Next we should see the "returns" keyword
     current_token = &tokens[*current];
-    if current_token.name != TokenName::RETURNS {
+    if current_token.token_type != TokenType::RETURNS {
         throw_error(&format!("Syntax Error on line {}: expected \"returns\" keyword",
                     current_token.line_num));
     }
@@ -523,7 +524,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     let mut returns_node = ASTNode::new("returns", None, None);
 
     current_token = &tokens[*current];
-    if current_token.name == TokenName::VOID {
+    if current_token.token_type == TokenType::VOID {
         returns_node.add_child(ASTNode::new("void",
                                                      Some(String::from("void")),
                                                      Some(current_token.line_num)));
@@ -550,13 +551,13 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode>
     // Create a vector to hold the AST nodes
     let mut node_vec = Vec::new();
 
-    // Add node for function name (identifier)
+    // Add node for function token_type (identifier)
     node_vec.push(identifier_(tokens, current));
 
     // Next we should see an open parenthesis:
     let mut current_token = &tokens[*current];
-    if current_token.name != TokenName::OPENPAR {
-        throw_error(&format!("Syntax Error on line {}: function name must be followed by a parameter list enclosed in parentheses \"(\" \")\"",
+    if current_token.token_type != TokenType::OPENPAR {
+        throw_error(&format!("Syntax Error on line {}: function token_type must be followed by a parameter list enclosed in parentheses \"(\" \")\"",
                     current_token.line_num));
     }
 
@@ -574,7 +575,7 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode>
 
     // Next we should see an close parenthesis:
     current_token = &tokens[*current];
-    if current_token.name != TokenName::CLOSEPAR {
+    if current_token.token_type != TokenType::CLOSEPAR {
         throw_error(&format!("Syntax Error on line {}: function parameter list must be followed up by a close parenthesis \")\"",
                     current_token.line_num));
     }
@@ -596,7 +597,7 @@ fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode
     // Create a vector to hold the AST nodes
     let mut param_list = Vec::new();
 
-    if current_token.name == TokenName::CLOSEPAR {
+    if current_token.token_type == TokenType::CLOSEPAR {
         // If the current token is a close parenthesis, this function has no parameters and we can return an empty list
         return param_list;
     }
@@ -607,9 +608,9 @@ fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode
     // Loop through more parameters until we reach the close parenthesis
     current_token = &tokens[*current];
 
-    while current_token.name != TokenName::CLOSEPAR {
+    while current_token.token_type != TokenType::CLOSEPAR {
 
-        if current_token.name == TokenName::COMMA {
+        if current_token.token_type == TokenType::COMMA {
             // Consume comma token and then parse the following parameter
             consume_token(current);
             param_list.push(formalparameter_(tokens, current));
@@ -659,7 +660,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
                                          Some(current_token.line_num));
 
     // A function declaration always starts with a "func" keyword, otherwise we have a syntax error
-    if current_token.name != TokenName::FUNC {
+    if current_token.token_type != TokenType::FUNC {
         throw_error(&format!("Syntax Error on line {}: main function declaration must always start with a \"func\" keyword",
                     current_token.line_num));
     }
@@ -675,7 +676,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
 
     // Next we should see the "returns" keyword
     current_token = &tokens[*current];
-    if current_token.name != TokenName::RETURNS {
+    if current_token.token_type != TokenType::RETURNS {
         throw_error(&format!("Syntax Error on line {}: expected \"returns\" keyword",
                     current_token.line_num));
     }
@@ -687,7 +688,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
     let mut returns_node = ASTNode::new("returns", None, None);
 
     current_token = &tokens[*current];
-    if current_token.name == TokenName::VOID {
+    if current_token.token_type == TokenType::VOID {
         returns_node.add_child(ASTNode::new("void",
                                                      Some(String::from("void")),
                                                      Some(current_token.line_num)));
@@ -718,7 +719,7 @@ fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode 
     let mut current_token = &tokens[*current];
 
     // Main function must be called "main"
-    if current_token.name != TokenName::MAIN {
+    if current_token.token_type != TokenType::MAIN {
         throw_error(&format!("Syntax Error on line {}: main function must be called \"main\"",
                     current_token.line_num));
     }
@@ -728,7 +729,7 @@ fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode 
     current_token = &tokens[*current];
 
     // "main" keyword must be followed by "()"
-    if current_token.name != TokenName::OPENPAR || tokens[*current + 1].name != TokenName::CLOSEPAR {
+    if current_token.token_type != TokenType::OPENPAR || tokens[*current + 1].token_type != TokenType::CLOSEPAR {
         throw_error(&format!("Syntax Error on line {}: \"main\" keyword must be followed by \"()\"",
                     current_token.line_num));
     }
@@ -751,7 +752,7 @@ fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let mut block_node = ASTNode::new("block", None, Some(current_token.line_num));
 
     // A block should always start with an open brace
-    if current_token.name != TokenName::OPENBRACE {
+    if current_token.token_type != TokenType::OPENBRACE {
         throw_error(&format!("Syntax Error on line {}: expected an open brace \"{{\"",
                     current_token.line_num));
     }
@@ -764,7 +765,7 @@ fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
     // A block should always end with a close brace
     current_token = &tokens[*current];
-    if current_token.name != TokenName::CLOSEBRACE {
+    if current_token.token_type != TokenType::CLOSEBRACE {
         throw_error(&format!("Syntax Error on line {}: expected a close brace \"}}\"",
                     current_token.line_num));
     }
@@ -787,13 +788,13 @@ fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     let mut statement_vec = Vec::new();
 
     // Blocks cannot be empty, so if the first token we see is a close brace, we have a syntax error:
-    if current_token.name == TokenName::CLOSEBRACE {
+    if current_token.token_type == TokenType::CLOSEBRACE {
         throw_error(&format!("Syntax Error on line {}: block cannot be empty",
                     current_token.line_num));
     }
 
     // Otherwise, we have a non-empty block, so we can loop until we find that close brace
-    while current_token.name != TokenName::CLOSEBRACE {
+    while current_token.token_type != TokenType::CLOSEBRACE {
         statement_vec.push(blockstatement_(tokens, current));
         current_token = &tokens[*current];
     }
@@ -811,7 +812,7 @@ fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
     // A block statement can either be a variable declaration or a statement
     // If it is a variable declaration, the first token we will find is a type (int or bool)
-    if current_token.name == TokenName::INT || current_token.name == TokenName::BOOL {
+    if current_token.token_type == TokenType::INT || current_token.token_type == TokenType::BOOL {
         return variabledeclaration_(tokens, current);
     } else {
         // Otherwise, it is a statement, and if the first token doesn't match any of those options,
@@ -835,12 +836,12 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
-    match current_token.name {
+    match current_token.token_type {
         // If the statement is a block, the first token we see is an open brace
-        TokenName::OPENBRACE => {return block_(tokens, current);}
+        TokenType::OPENBRACE => {return block_(tokens, current);}
 
         // If the statement is a void statement, the first token we see is a semicolon
-        TokenName::SEMICOLON => {
+        TokenType::SEMICOLON => {
             // Consume semicolon token
             consume_token(current);
             current_token = &tokens[*current];
@@ -850,13 +851,13 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         // If the statement is a statement expression (which can be either an assignment or a function call),
         // the first token we see is an identifier
-        TokenName::ID => {
+        TokenType::ID => {
             // Parse statement expression
             let stmt_expr = statementexpression_(tokens, current);
 
             // Statement expression must be followed by a semicolon
             current_token = &tokens[*current];
-            if current_token.name != TokenName::SEMICOLON {
+            if current_token.token_type != TokenType::SEMICOLON {
                 throw_error(&format!("Syntax Error on line {}: expression must end with a semicolon",
                             tokens[*current - 1].line_num));
             }
@@ -868,13 +869,13 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         }
 
         // If the statement is a break statement, the first token we see is a BREAK token
-        TokenName::BREAK => {
+        TokenType::BREAK => {
             // Consume break token
             consume_token(current);
             current_token = &tokens[*current];
 
             // Break statement must be followed by a semicolon
-            if current_token.name != TokenName::SEMICOLON {
+            if current_token.token_type != TokenType::SEMICOLON {
                 throw_error(&format!("Syntax Error on line {}: break statement must end with a semicolon",
                             current_token.line_num));
             }
@@ -886,12 +887,12 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         }
 
         // If the statement is a return statement, the first token we see is a RETURN token
-        TokenName::RETURN => {
+        TokenType::RETURN => {
             // Consume return token
             consume_token(current);
             current_token = &tokens[*current];
 
-            if current_token.name == TokenName::SEMICOLON {
+            if current_token.token_type == TokenType::SEMICOLON {
                 // We have an empty return statement, consume semicolon token
                 consume_token(current);
                 current_token = &tokens[*current];
@@ -905,7 +906,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
                 // Return statement must end with a semicolon
                 current_token = &tokens[*current];
-                if current_token.name != TokenName::SEMICOLON {
+                if current_token.token_type != TokenType::SEMICOLON {
                     throw_error(&format!("Syntax Error on line {}: return statement must end with a semicolon",
                                 current_token.line_num));
                 }
@@ -918,7 +919,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         }
 
         // If the statement is an if or if-else statement, the first token we see is an IF token
-        TokenName::IF => {
+        TokenType::IF => {
             // Get line number of the IF token
             let if_line_num = current_token.line_num;
 
@@ -933,7 +934,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
             // Check if this is an if statement or an if-else statement
             current_token = &tokens[*current];
-            if current_token.name != TokenName::ELSE {
+            if current_token.token_type != TokenType::ELSE {
                 // If there is no else, create the if node
                 let mut if_node = ASTNode::new("if", None, Some(if_line_num));
 
@@ -963,7 +964,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         }
 
         // If the statement is a while loop, the first token we see is a WHILE token
-        TokenName::WHILE => {
+        TokenType::WHILE => {
             // Consume while token
             consume_token(current);
 
@@ -980,7 +981,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         }
 
         // If the first token we see is MAIN, the user is probably trying to call the main function
-        TokenName::MAIN => {
+        TokenType::MAIN => {
             throw_error(&format!("Line {}: main function cannot be invoked",
                         current_token.line_num));
             
@@ -1008,7 +1009,7 @@ fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let token_2 = &tokens[*current + 1];
 
     // If we have a function invocation, the second token should be an open parenthesis
-    if token_2.name == TokenName::OPENPAR {
+    if token_2.token_type == TokenType::OPENPAR {
         return functioninvocation_(tokens, current);
     } else {
         // Otherwise, we have an assignment
@@ -1025,7 +1026,7 @@ fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
-    if current_token.name == TokenName::OPENPAR {
+    if current_token.token_type == TokenType::OPENPAR {
         // Consume open parenthesis token
         consume_token(current);
 
@@ -1034,7 +1035,7 @@ fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         // Make sure the open parenthesis is matched by a close parenthesis
         current_token = &tokens[*current];
-        if current_token.name != TokenName::CLOSEPAR {
+        if current_token.token_type != TokenType::CLOSEPAR {
             throw_error(&format!("Syntax Error on line {}: missing close parenthesis",
                         current_token.line_num));
         }
@@ -1044,7 +1045,7 @@ fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
         return expr_node;
 
-    } else if tokens[*current + 1].name == TokenName::OPENPAR {
+    } else if tokens[*current + 1].token_type == TokenType::OPENPAR {
         // We have a function invocation
         return functioninvocation_(tokens, current);
 
@@ -1065,7 +1066,7 @@ fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Create a vector to hold the AST nodes
     let mut arg_list = Vec::new();
 
-    if current_token.name == TokenName::CLOSEPAR {
+    if current_token.token_type == TokenType::CLOSEPAR {
         // If the current token is a close parenthesis, this function call has no arguments and we can return an empty list
         return arg_list;
     }
@@ -1078,9 +1079,9 @@ fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Loop through more parameters until we reach the close parenthesis
     current_token = &tokens[*current];
 
-    while current_token.name != TokenName::CLOSEPAR {
+    while current_token.token_type != TokenType::CLOSEPAR {
 
-        if current_token.name == TokenName::COMMA {
+        if current_token.token_type == TokenType::COMMA {
             // Consume comma token and then parse the following parameter
             consume_token(current);
             let mut arg = ASTNode::new("argument", None, None);
@@ -1115,8 +1116,8 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
     // Next, we should see an open parenthesis
     current_token = &tokens[*current];
-    if current_token.name != TokenName::OPENPAR {
-        throw_error(&format!("Syntax Error on line {}: function call name must be followed by an open parenthesis",
+    if current_token.token_type != TokenType::OPENPAR {
+        throw_error(&format!("Syntax Error on line {}: function call token_type must be followed by an open parenthesis",
                     current_token.line_num));
     }
 
@@ -1130,7 +1131,7 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
     // Finally, we should see an close parenthesis
     current_token = &tokens[*current];
-    if current_token.name != TokenName::CLOSEPAR {
+    if current_token.token_type != TokenType::CLOSEPAR {
         throw_error(&format!("Syntax Error on line {}: function call argument list must be followed by a close parenthesis",
                     current_token.line_num));
     }
@@ -1153,12 +1154,12 @@ fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // A primary can be a literal (first token is INTLIT, STRLIT, TRUE, or FALSE),
     // an expression surrounded by parentheses (first token is OPENPAR),
     // or a function invocation (second token is OPENPAR)
-    if current_token.name == TokenName::INTLIT ||
-    current_token.name == TokenName::STRLIT ||
-    current_token.name == TokenName::TRUE ||
-    current_token.name == TokenName::FALSE ||
-    current_token.name == TokenName::OPENPAR ||
-    tokens[*current + 1].name == TokenName::OPENPAR {
+    if current_token.token_type == TokenType::INTLIT ||
+    current_token.token_type == TokenType::STRLIT ||
+    current_token.token_type == TokenType::TRUE ||
+    current_token.token_type == TokenType::FALSE ||
+    current_token.token_type == TokenType::OPENPAR ||
+    tokens[*current + 1].token_type == TokenType::OPENPAR {
         return primary_(tokens, current);
     } else {
         return identifier_(tokens, current);
@@ -1175,7 +1176,7 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     let current_token = &tokens[*current];
 
     // A unary expression can either start with a -, a !, or just be a postfix expression
-    if current_token.name == TokenName::MINUS {
+    if current_token.token_type == TokenType::MINUS {
         // Consume minus token
         consume_token(current);
 
@@ -1188,7 +1189,7 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         // Return node
         return unary_minus_node;
 
-    } else if  current_token.name == TokenName::NOT {
+    } else if  current_token.token_type == TokenType::NOT {
         // Consume not token
         consume_token(current);
 
@@ -1240,18 +1241,18 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
     let current_token = &tokens[*current];
 
     // Either we see an mult token, or we return nothing
-    if current_token.name == TokenName::MULT ||
-       current_token.name == TokenName::DIV ||
-       current_token.name == TokenName::MOD {
+    if current_token.token_type == TokenType::MULT ||
+       current_token.token_type == TokenType::DIV ||
+       current_token.token_type == TokenType::MOD {
         // Consume token
         consume_token(current);
 
         let mut mult_node;
 
         // Make correct kind of node
-        if current_token.name == TokenName::MULT {
+        if current_token.token_type == TokenType::MULT {
             mult_node = ASTNode::new("*", None, Some(current_token.line_num));
-        } else if current_token.name == TokenName::DIV {
+        } else if current_token.token_type == TokenType::DIV {
             mult_node = ASTNode::new("/", None, Some(current_token.line_num));
         } else {
             mult_node = ASTNode::new("%", None, Some(current_token.line_num));
@@ -1314,14 +1315,14 @@ fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     let current_token = &tokens[*current];
 
     // Either we see an PLUS or MINUS token, or we return nothing
-    if current_token.name == TokenName::PLUS || current_token.name == TokenName::MINUS {
+    if current_token.token_type == TokenType::PLUS || current_token.token_type == TokenType::MINUS {
         // Consume token
         consume_token(current);
 
         let mut add_node;
 
         // Make correct kind of node
-        if current_token.name == TokenName::PLUS {
+        if current_token.token_type == TokenType::PLUS {
             add_node = ASTNode::new("+", None, Some(current_token.line_num));
         } else {
             add_node = ASTNode::new("-", None, Some(current_token.line_num));
@@ -1386,21 +1387,21 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     let current_token = &tokens[*current];
 
     // Either we see an relational token, or we return nothing
-    if current_token.name == TokenName::LT ||
-       current_token.name == TokenName::GT ||
-       current_token.name == TokenName::LEQ ||
-       current_token.name == TokenName::GEQ {
+    if current_token.token_type == TokenType::LT ||
+       current_token.token_type == TokenType::GT ||
+       current_token.token_type == TokenType::LEQ ||
+       current_token.token_type == TokenType::GEQ {
         // Consume token
         consume_token(current);
 
         let mut rel_node;
 
         // Make correct kind of node
-        if current_token.name == TokenName::LT {
+        if current_token.token_type == TokenType::LT {
             rel_node = ASTNode::new("<", None, Some(current_token.line_num));
-        } else if current_token.name == TokenName::GT {
+        } else if current_token.token_type == TokenType::GT {
             rel_node = ASTNode::new(">", None, Some(current_token.line_num));
-        } else if current_token.name == TokenName::LEQ {
+        } else if current_token.token_type == TokenType::LEQ {
             rel_node = ASTNode::new("<=", None, Some(current_token.line_num));
         } else {
             rel_node = ASTNode::new(">=", None, Some(current_token.line_num));
@@ -1463,14 +1464,14 @@ fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     let current_token = &tokens[*current];
 
     // Either we see an EQ or NEQ token, or we return nothing
-    if current_token.name == TokenName::EQ || current_token.name == TokenName::NEQ {
+    if current_token.token_type == TokenType::EQ || current_token.token_type == TokenType::NEQ {
         // Consume token
         consume_token(current);
 
         let mut eq_node;
 
         // Make correct kind of node
-        if current_token.name == TokenName::EQ {
+        if current_token.token_type == TokenType::EQ {
             eq_node = ASTNode::new("==", None, Some(current_token.line_num));
         } else {
             eq_node = ASTNode::new("!=", None, Some(current_token.line_num));
@@ -1531,7 +1532,7 @@ fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
     let current_token = &tokens[*current];
 
     // Either we see an AND token, or we return nothing
-    if current_token.name == TokenName::AND {
+    if current_token.token_type == TokenType::AND {
         // Consume AND token
         consume_token(current);
 
@@ -1593,7 +1594,7 @@ fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode
     let current_token = &tokens[*current];
 
     // Either we see an OR token, or we return nothing
-    if current_token.name == TokenName::OR {
+    if current_token.token_type == TokenType::OR {
         // Consume OR token
         consume_token(current);
 
@@ -1632,12 +1633,12 @@ fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // The second token of an expression is =, +=, -=, etc...
     let token_2 = &tokens[*current + 1];
 
-    if token_2.name == TokenName::ASSIGN ||
-       token_2.name == TokenName::PLUSEQ ||
-       token_2.name == TokenName::MINUSEQ ||
-       token_2.name == TokenName::MULTEQ ||
-       token_2.name == TokenName::DIVEQ ||
-       token_2.name == TokenName::MODEQ {
+    if token_2.token_type == TokenType::ASSIGN ||
+       token_2.token_type == TokenType::PLUSEQ ||
+       token_2.token_type == TokenType::MINUSEQ ||
+       token_2.token_type == TokenType::MULTEQ ||
+       token_2.token_type == TokenType::DIVEQ ||
+       token_2.token_type == TokenType::MODEQ {
         // We have an assignment
         return assignment_(tokens, current);
 
@@ -1663,8 +1664,8 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // The token of the assignment, for example, =, +=, -=, etc...
     let assign_token = &tokens[*current];
 
-    match assign_token.name {
-        TokenName::ASSIGN => {
+    match assign_token.token_type {
+        TokenType::ASSIGN => {
             // Create assignment node and attach the LHS id node
             let mut assign_node = ASTNode::new("=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
@@ -1679,7 +1680,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             return assign_node;
         }
 
-        TokenName::PLUSEQ => {
+        TokenType::PLUSEQ => {
             // Create plus-equal node and attach the LHS id node
             let mut assign_node = ASTNode::new("+=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
@@ -1689,7 +1690,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             let current_token = &tokens[*current];
 
             // Plus-equal must be followed by an integer literal
-            if current_token.name != TokenName::INTLIT {
+            if current_token.token_type != TokenType::INTLIT {
                 throw_error(&format!("Syntax Error on line {}: += statement must be followed by an integer literal",
                             current_token.line_num));
             }
@@ -1701,7 +1702,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             return assign_node;
         }
 
-        TokenName::MINUSEQ => {
+        TokenType::MINUSEQ => {
             // Create minus-equal node and attach the LHS id node
             let mut assign_node = ASTNode::new("-=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
@@ -1711,7 +1712,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             let current_token = &tokens[*current];
 
             // Minus-equal must be followed by an integer literal
-            if current_token.name != TokenName::INTLIT {
+            if current_token.token_type != TokenType::INTLIT {
                 throw_error(&format!("Syntax Error on line {}: -= statement must be followed by an integer literal",
                             current_token.line_num));
             }
@@ -1723,7 +1724,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             return assign_node;
         }
 
-        TokenName::MULTEQ => {
+        TokenType::MULTEQ => {
             // Create multiply-equal node and attach the LHS id node
             let mut assign_node = ASTNode::new("*=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
@@ -1733,7 +1734,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             let current_token = &tokens[*current];
 
             // Multiply-equal must be followed by an integer literal
-            if current_token.name != TokenName::INTLIT {
+            if current_token.token_type != TokenType::INTLIT {
                 throw_error(&format!("Syntax Error on line {}: *= statement must be followed by an integer literal",
                             current_token.line_num));
             }
@@ -1745,7 +1746,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             return assign_node;
         }
 
-        TokenName::DIVEQ => {
+        TokenType::DIVEQ => {
             // Create divide-equal node and attach the LHS id node
             let mut assign_node = ASTNode::new("/=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
@@ -1755,7 +1756,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             let current_token = &tokens[*current];
 
             // Divide-equal must be followed by an integer literal
-            if current_token.name != TokenName::INTLIT {
+            if current_token.token_type != TokenType::INTLIT {
                 throw_error(&format!("Syntax Error on line {}: /= statement must be followed by an integer literal",
                             current_token.line_num));
             }
@@ -1767,7 +1768,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             return assign_node;
         }
 
-        TokenName::MODEQ => {
+        TokenType::MODEQ => {
             // Create modulus-equal node and attach the LHS id node
             let mut assign_node = ASTNode::new("%=", None, Some(assign_token.line_num));
             assign_node.add_child(id_node);
@@ -1777,7 +1778,7 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             let current_token = &tokens[*current];
 
             // Modulus-equal must be followed by an integer literal
-            if current_token.name != TokenName::INTLIT {
+            if current_token.token_type != TokenType::INTLIT {
                 throw_error(&format!("Syntax Error on line {}: %= statement must be followed by an integer literal",
                             current_token.line_num));
             }

@@ -1,7 +1,7 @@
 // file to test scanner
 
 // Identifiers
-_ a b test identifier _return return_ id_1 i2d 3id
+_ a b test identifier _return return_ id_1 i2d 3id  // 3id will result in an integer literal '3' token and an ID 'id' token
 
 // String literals
 "this is a string literal\n"
@@ -12,5 +12,8 @@ true false bool int void if else while break return func returns main
 // Integer literals
 0 19289 02140260368090
 
+// Separators
+( ) { } ; ,
+
 // Operators
-+ += - -= * *= / /= % %= ^ ^= < > <= >= = == != ! && ||
++ += - -= * *= / /= % %= < > <= >= = == != ! && ||
