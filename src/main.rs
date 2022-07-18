@@ -3,7 +3,8 @@ use std::env;
 
 use crate::scanner::scanner_data::TokenType;
 use crate::scanner::scanner_driver::scanner;
-use crate::parser::print_ast;
+use crate::parser::parser_data::*;
+use crate::parser::parser_driver::parser;
 
 pub mod scanner;
 pub mod parser;
@@ -34,7 +35,7 @@ fn main() {
 
     println!("\nBEGIN PARSER");
 
-    let mut ast = parser::parser(&tokens);
+    let mut ast = parser(&tokens);
 
     print_ast(&ast);
 

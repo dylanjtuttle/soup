@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::parser::{ASTNode, print_ast};
+use crate::parser::parser_data::{ASTNode, print_ast};
 use crate::throw_error;
 
 // -----------------------------------------------------------------

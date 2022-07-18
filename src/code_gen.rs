@@ -3,7 +3,7 @@ use std::fs::File;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::parser::ASTNode;
+use crate::parser::parser_data::ASTNode;
 use crate::semantic::Symbol;
 use crate::semantic::{is_binary, is_unary};
 use crate::throw_error;
