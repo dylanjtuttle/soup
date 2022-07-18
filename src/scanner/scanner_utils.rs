@@ -125,7 +125,7 @@ pub fn get_and_or(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, op_lexem
 // Given a character in the character list, knowing it is an ID character,
 // loop through all of the possible reserved words and check if
 // the given character is the start of any of them
-pub fn get_reserved(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
+pub fn get_reserved_words(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
     let reserved_types = vec![TokenType::IF, TokenType::INT,
                                               TokenType::TRUE, TokenType::BOOL,
                                               TokenType::VOID, TokenType::ELSE,
@@ -142,7 +142,7 @@ pub fn get_reserved(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
     // Loop through the reserved words and try to match each
     // If one matches, return the corresponding token
     for j in 0..reserved_types.len() {
-        match check_reserved(chars, i, reserved_types[j], reserved_lexemes[j]) {
+        match get_reserved_word(chars, i, reserved_types[j], reserved_lexemes[j]) {
             None => {}
             Some(token) => {return Some(token);}
         }
@@ -155,7 +155,7 @@ pub fn get_reserved(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
 
 // Given a character in the character list and a particular reserved word,
 // check if the given character is the start of that reserved word
-pub fn check_reserved(chars: &Vec<Char>, i: &mut usize, reserved_type: TokenType, reserved: &str) -> Option<Token> {
+pub fn get_reserved_word(chars: &Vec<Char>, i: &mut usize, reserved_type: TokenType, reserved: &str) -> Option<Token> {
     // Check if there are enough characters in the list to check for the reserved word
     if has_enough_chars(chars, i, reserved.len()) {
         // Form a list of chars so we can turn it into a string and check if it equals the given reserved word

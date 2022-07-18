@@ -61,8 +61,8 @@ fn get_token(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
         }
         'A'..='Z' | 'a'..='z' | '_' => {
             // Possible identifier, but we have to check for reserved words first
-            match get_reserved(chars, i) {
-                // If we find a reserved word token, return it
+            match get_reserved_words(chars, i) {
+                // If we find a reserved word, return the corresponding token
                 Some(reserved) => {return Some(reserved)}
 
                 // Otherwise, we have an identifier
