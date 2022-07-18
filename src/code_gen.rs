@@ -4,8 +4,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::parser::parser_data::ASTNode;
-use crate::semantic::Symbol;
-use crate::semantic::{is_binary, is_unary};
+use crate::semantic::semantic_data::Symbol;
+use crate::semantic::semantic_utils::{is_binary, is_unary};
 use crate::throw_error;
 
 // -----------------------------------------------------------------

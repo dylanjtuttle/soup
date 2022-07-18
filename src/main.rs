@@ -1,15 +1,16 @@
 use std::process;
 use std::env;
 
-use crate::scanner::scanner_data::TokenType;
-use crate::scanner::scanner_driver::scanner;
-use crate::parser::parser_data::*;
-use crate::parser::parser_driver::parser;
-
 pub mod scanner;
 pub mod parser;
 pub mod semantic;
 pub mod code_gen;
+
+use crate::scanner::scanner_data::TokenType;
+use crate::scanner::scanner_driver::scanner;
+use crate::parser::parser_data::*;
+use crate::parser::parser_driver::parser;
+use crate::semantic::semantic_driver::semantic_checker;
 
 fn main() {
     // Get command line arguments
@@ -41,7 +42,9 @@ fn main() {
 
     println!("\nBEGIN SEMANTIC CHECKING:\n");
 
-    semantic::semantic_checker(&mut ast);
+    semantic_checker(&mut ast);
+
+    print_ast(&ast);
 
     println!("\nBEGIN CODE GENERATION:\n");
 

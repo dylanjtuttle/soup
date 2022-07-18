@@ -3,7 +3,7 @@ use std::io::Write;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::semantic::Symbol;
+use crate::semantic::semantic_data::Symbol;
 
 #[derive(Clone)]
 pub struct ASTNode {
