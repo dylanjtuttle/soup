@@ -11,6 +11,7 @@ use crate::scanner::scanner_driver::scanner;
 use crate::parser::parser_data::*;
 use crate::parser::parser_driver::parser;
 use crate::semantic::semantic_driver::semantic_checker;
+use crate::code_gen::code_gen_driver::code_gen;
 
 fn main() {
     // Get command line arguments
@@ -48,7 +49,7 @@ fn main() {
 
     println!("\nBEGIN CODE GENERATION:\n");
 
-    code_gen::code_gen("asm/test.asm", &mut ast);
+    code_gen("asm/test.asm", &mut ast);
 
     print_ast(&ast);
 }
