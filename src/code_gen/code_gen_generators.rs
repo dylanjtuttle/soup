@@ -132,8 +132,8 @@ pub fn gen_expr(writer: &mut ASMWriter, node: &ASTNode) -> i32 {
 
 pub fn gen_division(writer: &mut ASMWriter, node: &ASTNode, dest: i32, lhs: i32, rhs: i32) {
     // Generate labels
-    let div_label = writer.get_label();
-    let after_label = writer.get_label();
+    let div_label = writer.new_label();
+    let after_label = writer.new_label();
 
     // If denominator is zero, jump over division to error call
     writer.write(&format!("        cmp     w{}, wzr", rhs));

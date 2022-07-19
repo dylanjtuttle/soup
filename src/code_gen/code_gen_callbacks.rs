@@ -133,13 +133,13 @@ pub fn strings_callback(writer: &mut ASMWriter, node: &mut ASTNode) {
         }
 
         // new_string has successfully been formed, so we can store it for printing later
-        let label = writer.get_label();
+        let label = writer.new_label();
         writer.write(&format!("{}: .string \"{}\"", label, new_string));
         // Update the version in the AST
         node.children[1].children[0].children[0].attr = Some(new_string);
         // Create a symbol table and add it to the string node
         node.children[1].children[0].children[0].add_sym(Rc::new(RefCell::new(Symbol::new(String::from("string"), String::from("string"), String::from("string")))));
         // Keep track of that label for later
-        node.children[1].children[0].children[0].get_sym().borrow_mut().label = Some(label.clone());
+        node.children[1].children[0].children[0].get_sym().borrow_mut().label = Some(label);
     }
 }

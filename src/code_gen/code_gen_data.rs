@@ -43,7 +43,7 @@ impl ASMWriter {
     }
 
     // Update the current label
-    pub fn get_label(&mut self) -> String {
+    pub fn new_label(&mut self) -> String {
         // Get number of current label
         let mut label_num = self.label[1..].to_string().parse::<u64>().unwrap();
     
