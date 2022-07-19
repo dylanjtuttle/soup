@@ -4,6 +4,8 @@ use std::cell::RefCell;
 use crate::parser::parser_data::ASTNode;
 use crate::semantic::semantic_data::Symbol;
 
+use crate::code_gen::code_gen_data::ASMWriter;
+
 // -----------------------------------------------------------------------------------------
 // FUNCTION DECLARATION HELPERS
 // -----------------------------------------------------------------------------------------
@@ -29,9 +31,9 @@ pub fn get_func_stack_alloc(node: &ASTNode) -> i32 {
     // Calculate the number of bytes we need to allocate on the stack for local variables
     let mut var_alloc = get_func_var_alloc(node);
 
-    // If the number of bytes isn't at least 16, make it 16
-    if var_alloc < 16 {
-        var_alloc = 16;
+    // Make sure the amount of bytes is quad-word aligned
+    while var_alloc % 16 != 0 {
+        var_alloc += 4;
     }
 
     return var_alloc;
@@ -56,6 +58,29 @@ pub fn get_func_var_alloc(node: &ASTNode) -> i32 {
 // -----------------------------------------------------------------------------------------
 // STACK ALLOCATION HELPERS
 // -----------------------------------------------------------------------------------------
+
+// Allocate/deallocate the requested amount of space on the stack
+// (positive for allocating, negative for deallocating)
+pub fn allocate_stack(writer: &mut ASMWriter, mut allocate: i32) {
+    // We always have to allocate an amount which is quad-word aligned
+    while allocate % 16 != 0 {
+        if allocate < 0 {
+            allocate -= 4;
+        } else {
+            allocate += 4;
+        }
+    }
+
+    // Move the stack pointer to allocate/deallocate the requested amount of space
+    if allocate < 0 {
+        writer.write(&format!("        add     sp, sp, {}", -allocate));
+    } else {
+        writer.write(&format!("        sub     sp, sp, {}", allocate));
+    }
+
+    // Correct the addresses of all local variables in the current function now that we've moved the stack pointer
+    increment_addrs(&writer.get_current_func(), allocate, &mut vec![]);
+}
 
 // Loop through every variable declaration (including parameters) and increment their memory address by the given amount
 pub fn increment_addrs(node: &ASTNode, increment: i32, already_incremented: &mut Vec<Rc<RefCell<Symbol>>>) {

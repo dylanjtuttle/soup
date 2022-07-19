@@ -165,16 +165,46 @@ pub fn gen_func_call(writer: &mut ASMWriter, node: &mut ASTNode) {
     if node.get_func_name() == "printf" {
         // Get label of string
         let string_label = node.children[1].children[0].children[0].get_sym().borrow().get_label();
+
         // Generate the printf function call
         func_call_printf(writer, node, &string_label);
+
     } else {
-        // Loop through any arguments and put them in the argument passing registers
+        // Check how many arguments we want to pass
+        let num_args = node.children[1].children.len();
+
+        // There are 8 argument passing registers, r0 - r7, so if there are more arguments than that,
+        // we need to allocate extra space on the stack for them
+        if num_args > 8 {
+            let extra_space = ((num_args - 8) * 4) as i32;
+            // Allocate enough space on the stack, and adjust the addresses of the local variables accordingly
+            allocate_stack(writer, extra_space);
+        }
+
+        // Loop through any arguments and pass them using the correct method
         for (i, arg) in node.children[1].children.iter().enumerate() {
             let expr_reg = gen_expr(writer, &arg.children[0]);
-            writer.write(&format!("        mov     w{}, w{}", i, expr_reg));
+
+            // If the argument number is less than 8, just put it in the corresponding argument passing register
+            if i < 8 {
+                writer.write(&format!("        mov     w{}, w{}", i, expr_reg));
+            } else {
+                // Otherwise, place it on the stack at offset (i - 8) * 4
+                // (for example, argument 8 will be stored at sp + 0, argument 9 at sp + 4, etc...)
+                writer.write(&format!("        str     w{}, [sp, {}]", expr_reg, (i - 8) * 4));
+            }
+
             writer.free_reg(expr_reg);
         }
+
         writer.write(&format!("        bl      {}1", node.get_sym().borrow().name));
+
+        // If we cleared extra space, we have to deallocate it after the function call
+        if num_args > 8 {
+            let extra_space = ((num_args - 8) * 4) as i32;
+            // Deallocate space on the stack, and adjust the addresses of the local variables accordingly
+            allocate_stack(writer, -extra_space);
+        }
     }
 }
 
@@ -193,7 +223,16 @@ pub fn gen_func_enter(writer: &mut ASMWriter, node: &mut ASTNode) {
 
     // Store any parameters in their assigned memory locations
     for (i, param) in node.children[1].children.iter().enumerate() {
-        writer.write(&format!("        str     x{}, [sp, {}]", i, param.get_sym().borrow().get_addr()));
+        // If the parameter number is less than 8, it is stored in an argument passing register
+        if i < 8 {
+            writer.write(&format!("        str     w{}, [sp, {}]", i, param.get_sym().borrow().get_addr()));
+        } else {
+            // Otherwise, it is stored on the stack
+            let temp_reg = writer.alloc_reg();
+            writer.write(&format!("        ldr     w{}, [sp, {}]", temp_reg, ((i - 8) * 4) + 16 + (num_bytes as usize)));
+            writer.write(&format!("        str     w{}, [sp, {}]", temp_reg, param.get_sym().borrow().get_addr()));
+            writer.free_reg(temp_reg);
+        }
     }
 }
 
@@ -244,7 +283,7 @@ pub fn func_call_printf(writer: &mut ASMWriter, node: &ASTNode, string_label: &S
     }
     writer.write("        bl      _printf");
     if formatting {
-        writer.write("        add     sp, sp, 32");
-        increment_addrs(&writer.get_current_func(), -32, &mut vec![]);
+        // Deallocate space on the stack for the printf arguments
+        allocate_stack(writer, -32);
     }
 }

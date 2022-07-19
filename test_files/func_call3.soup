@@ -1,0 +1,10 @@
+// Test function calls with more parameters than there are argument passing registers
+
+func main() returns void {
+    test_func(0, 1, 2, 3, 4, 5, 6, 7, 8);
+}
+
+func test_func(int x0, int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8) returns void {
+    printf("{} {} {} {} {} ", x0, x1, x2, x3, x4);
+    printf("{} {} {} {}\n", x5, x6, x7, x8);
+}
