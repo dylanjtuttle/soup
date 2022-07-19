@@ -1,0 +1,8 @@
+// Testing the use of global variables
+
+func main() returns void {
+    x = 99;
+    printf("x = {}\n", x);
+}
+
+int x;

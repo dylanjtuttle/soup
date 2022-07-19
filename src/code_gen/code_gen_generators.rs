@@ -114,11 +114,26 @@ pub fn gen_expr(writer: &mut ASMWriter, node: &ASTNode) -> i32 {
         return reg;
         
     } else if node.node_type == "id" {
-        // We have a local variable
+        // We have either a local variable or a global variable
+
+        // Allocate a register to store the value of the variable in
         let reg = writer.alloc_reg();
-        let addr = node.get_sym().borrow().get_addr();
-        writer.write(&format!("        ldr     w{}, [sp, {}]", reg, addr));
-        return reg;
+
+        // To check which one, we can simply find out if the variable's symbol table entry has an addr or a label
+        match node.get_sym().borrow().addr {
+            Some(addr) => {
+                // We have a local variable, so we can load the value at its address
+                writer.write(&format!("        ldr     w{}, [sp, {}]", reg, addr));
+                return reg;
+            }
+            None => {
+                // We have a global variable, so get the value stored at its label
+                writer.write(&format!("        adrp    x8, {}@PAGE", node.get_sym().borrow().get_label()));
+                writer.write(&format!("        add     x8, x8, {}@PAGEOFF", node.get_sym().borrow().get_label()));
+                writer.write(&format!("        ldr     w{}, [x8]", reg));
+                return reg;
+            }
+        }
 
     } else if node.node_type == "funcCall" {
         gen_func_call(writer, &mut node.clone());
@@ -219,7 +234,9 @@ pub fn gen_func_enter(writer: &mut ASMWriter, node: &mut ASTNode) {
     writer.write(&format!("\n{}1:", node.get_func_name()));
     writer.write("        stp     x29, x30, [sp, -16]!");
     writer.write("        mov     x29, sp");
-    writer.write(&format!("        sub     sp, sp, {}", num_bytes));
+    if num_bytes != 0 {
+        writer.write(&format!("        sub     sp, sp, {}", num_bytes));
+    }
 
     // Store any parameters in their assigned memory locations
     for (i, param) in node.children[1].children.iter().enumerate() {
@@ -259,7 +276,9 @@ pub fn gen_func_exit(writer: &mut ASMWriter, node: &mut ASTNode) {
 
     // Write function exit label
     writer.write(&format!("{}2:", node.get_func_name()));
-    writer.write(&format!("        add     sp, sp, {}", num_bytes));
+    if num_bytes != 0 {
+        writer.write(&format!("        add     sp, sp, {}", num_bytes));
+    }
     writer.write("        ldp     x29, x30, [sp], 16");
     writer.write("        ret");
 }

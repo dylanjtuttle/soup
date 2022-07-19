@@ -30,7 +30,7 @@ pub fn traverse_prune(writer: &mut ASMWriter, node: &mut ASTNode) {
 // -----------------------------------------------------------------
 
 pub fn gen_strings(writer: &mut ASMWriter, node: &mut ASTNode) {
-    strings_callback(writer, node);
+    global_data(writer, node);
 
     // Visit children
     for child in &mut node.children {

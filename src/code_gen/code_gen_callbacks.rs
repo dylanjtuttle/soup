@@ -20,10 +20,26 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
     || node.node_type == "*="
     || node.node_type == "/="
     || node.node_type == "%=" {
-        let lhs_addr = node.children[0].get_sym().borrow().get_addr();
+        // Get the value of the expression on the right hand side of this assignment in a register
         let rhs_reg = gen_expr(writer, node);
 
-        writer.write(&format!("        str     w{}, [sp, {}]", rhs_reg, lhs_addr));
+        // The left hand side of this assignment is either a local variable or a global variable
+        // To check which one, we can simply find out if the variable's symbol table entry has an addr or a label
+        match node.children[0].get_sym().borrow().addr {
+            Some(addr) => {
+                // We have a local variable, so we can store the result of the expression at its address
+                writer.write(&format!("        str     w{}, [sp, {}]", rhs_reg, addr));
+            }
+            None => {
+                // We have a global variable, so we can store the result of the expression at its label
+                writer.write(&format!("        adrp    x8, {}@PAGE", node.children[0].get_sym().borrow().get_label()));
+                writer.write(&format!("        add     x8, x8, {}@PAGEOFF", node.children[0].get_sym().borrow().get_label()));
+                writer.write(&format!("        str     w{}, [x8]", rhs_reg));
+                writer.free_reg(rhs_reg);
+            }
+        }
+
+        // Free the register holding the result of the expression on the right hand side of the assignment
         writer.free_reg(rhs_reg);
 
         return true;
@@ -59,7 +75,20 @@ pub fn traverse_post(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
     return false;
 }
 
-pub fn strings_callback(writer: &mut ASMWriter, node: &mut ASTNode) {
+pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
+    // Generate code for global variables
+    if node.node_type == "globVarDecl" {
+        // Define a label for the global variable
+        let global_label = writer.new_label();
+
+        // Initialize the global variable to zero (works for ints and bools!)
+        writer.write(&format!("{}: .word 0", global_label));
+
+        // Store the label in the variable's symbol table
+        node.get_sym().borrow_mut().label = Some(global_label);
+    }
+
+    // Generate code, handle errors for strings
     if node.node_type == "funcCall" && node.get_func_name() == "printf" {
         let mut num_formatters = 0;
         let fstring = node.children[1].children[0].children[0].get_attr();
