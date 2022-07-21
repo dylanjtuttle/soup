@@ -34,7 +34,7 @@ pub fn gen_expr(writer: &mut ASMWriter, node: &ASTNode) -> i32 {
         // Generate the expressions on either side of the operator, each returned in a register
         let lhs = gen_expr(writer, &node.children[0]);
         let rhs = gen_expr(writer, &node.children[1]);
-        let dest = writer.alloc_reg();
+        let mut dest = writer.alloc_reg();
 
         if node.node_type == "=" {
             writer.free_reg(lhs);
@@ -71,6 +71,98 @@ pub fn gen_expr(writer: &mut ASMWriter, node: &ASTNode) -> i32 {
             writer.free_reg(dest);
             writer.free_reg(rhs);
             return lhs;
+
+        } else if node.node_type == "&&" {
+            // Since these expressions must be short-circuiting, if the left-hand side is false,
+            // then no matter what the right hand side is, the expression will be false, so we don't even need to evaluate it
+            let after_label = writer.new_label();
+            writer.write(&format!("        cmp     w{}, wzr", lhs));
+            writer.write(&format!("        b.eq    {}", after_label));
+            writer.free_reg(dest);
+            dest = lhs;
+
+            // Otherwise, the left hand side is true, so we can evaluate the right hand side
+            writer.write(&format!("        and     w{}, w{}, w{}", dest, lhs, rhs));
+
+            // Write the after label
+            writer.write(&format!("        {}:", after_label));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+
+        } else if node.node_type == "||" {
+            // Since these expressions must be short-circuiting, if the left-hand side is true,
+            // then no matter what the right hand side is, the expression will be true, so we don't even need to evaluate it
+            let after_label = writer.new_label();
+            writer.write(&format!("        cmp     w{}, 1", lhs));
+            writer.write(&format!("        b.eq    {}", after_label));
+            writer.free_reg(dest);
+            dest = lhs;
+
+            // otherwise, the left hand side is false, so we can evaluate the right hand side
+            writer.write(&format!("        orr     w{}, w{}, w{}", dest, lhs, rhs));
+
+            // Write the after label
+            writer.write(&format!("        {}:", after_label));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+
+        } else if node.node_type == "==" {
+            // dest is 1 if lhs = rhs and 0 otherwise
+            writer.write(&format!("        cmp     w{}, w{}", lhs, rhs));
+            writer.write(&format!("        cset    w{}, EQ", dest));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+
+        } else if node.node_type == "!=" {
+            // dest is 1 if lhs = rhs and 0 otherwise
+            writer.write(&format!("        cmp     w{}, w{}", lhs, rhs));
+            writer.write(&format!("        cset    w{}, NE", dest));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+            
+        } else if node.node_type == "<" {
+            // dest is 1 if lhs = rhs and 0 otherwise
+            writer.write(&format!("        cmp     w{}, w{}", lhs, rhs));
+            writer.write(&format!("        cset    w{}, LT", dest));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+            
+        } else if node.node_type == ">" {
+            // dest is 1 if lhs = rhs and 0 otherwise
+            writer.write(&format!("        cmp     w{}, w{}", lhs, rhs));
+            writer.write(&format!("        cset    w{}, GT", dest));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+            
+        } else if node.node_type == "<=" {
+            // dest is 1 if lhs = rhs and 0 otherwise
+            writer.write(&format!("        cmp     w{}, w{}", lhs, rhs));
+            writer.write(&format!("        cset    w{}, LE", dest));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
+            
+        } else if node.node_type == ">=" {
+            // dest is 1 if lhs = rhs and 0 otherwise
+            writer.write(&format!("        cmp     w{}, w{}", lhs, rhs));
+            writer.write(&format!("        cset    w{}, GE", dest));
+            writer.free_reg(lhs);
+            writer.free_reg(rhs);
+
+            return dest;
         }
 
     } else if is_unary(node) {

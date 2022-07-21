@@ -111,6 +111,47 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
         return true;
     }
 
+    if node.node_type == "while" {
+        // Generate labels for while condition test and after loop
+        let test_label = writer.new_label();
+        let after_label = writer.new_label();
+
+        // First, we need to evaluate the expression
+        writer.write(&format!("        {}:", test_label));
+        let expr_reg = gen_expr(writer, &mut node.children[0]);
+
+        // Branch to after loop if equal to zero (false)
+        writer.write(&format!("        cmp     w{}, wzr", expr_reg));
+        writer.write(&format!("        b.eq    {}", after_label));
+
+        // We are about to start evaluating the body of the while loop,
+        // so store the current after label so we can jump to it if we find a break statement
+        writer.while_labels.push(after_label.clone());
+
+        // Evaluate the body of the while loop
+        traverse_prune(writer, &mut node.children[1]);
+
+        // Loop back up to the while condition
+        writer.write(&format!("        b       {}", test_label));
+
+        // Evaluate stuff after the while (by exiting out of this traversal)
+        writer.while_labels.pop();
+        writer.write(&format!("        {}:", after_label));  // Write after label
+        return true;
+    }
+
+    if node.node_type == "break" {
+        // Branch to the after label of the current while loop
+        let while_labels = writer.while_labels.clone();
+
+        let after_label = match while_labels.last() {
+            None => {String::from("")}
+            Some(after_label) => {after_label.clone()}
+        };
+
+        writer.write(&format!("        b       {}", after_label));
+    }
+
     return false;
 }
 

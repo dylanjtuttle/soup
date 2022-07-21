@@ -9,6 +9,7 @@ pub struct ASMWriter {
     pub label: String,
     pub regs: Vec<i32>,
     pub current_func: Option<ASTNode>,
+    pub while_labels: Vec<String>,
 }
 
 impl ASMWriter {
@@ -27,7 +28,7 @@ impl ASMWriter {
         let regs = vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         // 0 = unallocated, 1 = allocated, -1 = not allocatable
 
-        return ASMWriter { file: asm_file, label: label, regs: regs, current_func: None };
+        return ASMWriter { file: asm_file, label: label, regs: regs, current_func: None, while_labels: vec![] };
     }
 
     // Write a line to the assembly file

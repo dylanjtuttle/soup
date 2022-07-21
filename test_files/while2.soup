@@ -1,0 +1,12 @@
+func main() returns void {
+    int x;
+    x = 0;
+    while true {
+        printf("{} ", x);
+        if x == 10 {
+            printf("\nBREAK\n");
+            break;
+        }
+        x += 1;
+    }
+}

@@ -1,0 +1,19 @@
+// Testing break inside multiple while loops
+
+func main() returns void {
+    int x;
+    int y;
+    x = 0;
+    y = 0;
+    while x < 10 {
+        while true {
+            y += 1;
+            printf("{} ", y);
+            if y % 10 == 0 {
+                break;
+            }
+        }
+        printf("\n");
+        x += 1;
+    }
+}
