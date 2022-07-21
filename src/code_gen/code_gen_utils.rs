@@ -74,9 +74,9 @@ pub fn allocate_stack(writer: &mut ASMWriter, mut allocate: i32) {
     // Move the stack pointer to allocate/deallocate the requested amount of space
     if allocate < 0 {
         writer.write(&format!("        add     sp, sp, {}", -allocate));
-    } else {
+    } else if allocate > 0 {
         writer.write(&format!("        sub     sp, sp, {}", allocate));
-    }
+    } // else (allocate = 0), do nothing
 
     // Correct the addresses of all local variables in the current function now that we've moved the stack pointer
     increment_addrs(&writer.get_current_func(), allocate, &mut vec![]);

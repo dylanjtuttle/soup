@@ -85,6 +85,32 @@ impl ASMWriter {
         self.regs[(to_free - 9) as usize] = 0;
     }
 
+    pub fn get_allocated_caller_saved_registers(&self) -> Vec<usize> {
+        let mut allocated_caller_saved_registers = Vec::new();
+
+        // Loop through caller saved registers (self.regs[0] - self.regs[6])
+        for i in 0..7 {
+            if self.regs[i] == 1 {
+                allocated_caller_saved_registers.push(i + 9);
+            }
+        }
+
+        return allocated_caller_saved_registers;
+    }
+
+    pub fn get_allocated_callee_saved_registers(&self) -> Vec<usize> {
+        let mut allocated_callee_saved_registers = Vec::new();
+
+        // Loop through callee saved registers (self.regs[10] - self.regs[19])
+        for i in 10..self.regs.len() {
+            if self.regs[i] == 1 {
+                allocated_callee_saved_registers.push(i + 9);
+            }
+        }
+
+        return allocated_callee_saved_registers;
+    }
+
     pub fn enter_func(&mut self, func: &mut ASTNode) {
         self.current_func = Some(func.clone());
     }

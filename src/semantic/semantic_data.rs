@@ -99,12 +99,14 @@ pub struct Symbol {
     pub returns: String,
     pub label: Option<String>,
     pub addr: Option<i32>,
+    pub stored_bytes: i32,
+    pub active_callee_saved: Vec<usize>,
 }
 
 impl Symbol {
     // Create a new symbol
     pub fn new(name: String, type_sig: String, returns: String) -> Self {
-        Symbol{name: name, type_sig: type_sig, returns: returns, label: None, addr: None}
+        Symbol{name: name, type_sig: type_sig, returns: returns, label: None, addr: None, stored_bytes: 0, active_callee_saved: vec![]}
     }
 
     pub fn get_label(&self) -> String {
@@ -119,6 +121,10 @@ impl Symbol {
             None => -1,  // Should never happen, indicates an error on my end
             Some(addr) => *addr
         }
+    }
+
+    pub fn get_active_callees(&self) -> Vec<usize> {
+        return self.active_callee_saved.clone();
     }
 }
 

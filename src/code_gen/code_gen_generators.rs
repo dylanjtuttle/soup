@@ -212,7 +212,29 @@ pub fn gen_func_call(writer: &mut ASMWriter, node: &mut ASTNode) {
             writer.free_reg(expr_reg);
         }
 
+        // If there are any actively allocated caller-stored registers,
+        // they could get trampled by the function we are calling, so we have to store them
+        let active_caller = writer.get_allocated_caller_saved_registers();
+        // Allocate space on the stack and temporarily store the registers on that allocated space
+        allocate_stack(writer, (active_caller.len() * 4) as i32);
+        for (i, reg) in active_caller.iter().enumerate() {
+            writer.write(&format!("        str     w{}, [sp, {}]", reg, i * 4));
+        }
+        if active_caller.len() > 0 {
+            // If we are storing any of these registers, the callee will need to know about it since we've moved the
+            // stack pointer away from any possible arguments stored on the stack
+            node.get_sym().borrow_mut().stored_bytes = (active_caller.len() * 4) as i32;
+        }
+
         writer.write(&format!("        bl      {}1", node.get_sym().borrow().name));
+
+        for (i, reg) in active_caller.iter().enumerate() {
+            writer.write(&format!("        ldr     w{}, [sp, {}]", reg, i * 4));
+        }
+        if active_caller.len() > 0 {
+            // If we stored any caller-saved registers, deallocate the space on the stack
+            allocate_stack(writer, -((active_caller.len() * 4) as i32));
+        }
 
         // If we cleared extra space, we have to deallocate it after the function call
         if num_args > 8 {
@@ -246,10 +268,26 @@ pub fn gen_func_enter(writer: &mut ASMWriter, node: &mut ASTNode) {
         } else {
             // Otherwise, it is stored on the stack
             let temp_reg = writer.alloc_reg();
-            writer.write(&format!("        ldr     w{}, [sp, {}]", temp_reg, ((i - 8) * 4) + 16 + (num_bytes as usize)));
+            // Get the amount of space we need to consider that is used to store saved caller-saved registers
+            let caller_bytes = node.get_sym().borrow().stored_bytes;
+            writer.write(&format!("        ldr     w{}, [sp, {}]", temp_reg, ((i - 8) * 4) + 16 + ((num_bytes + caller_bytes) as usize)));
             writer.write(&format!("        str     w{}, [sp, {}]", temp_reg, param.get_sym().borrow().get_addr()));
             writer.free_reg(temp_reg);
         }
+    }
+
+    // We no longer need to keep track of the amount of space allocated for caller-saved registers
+    node.get_sym().borrow_mut().stored_bytes = 0;
+
+    // Now, if there are any callee-saved registers currently allocated, it is the job of the callee to save them
+    let mut active_callee = writer.get_allocated_callee_saved_registers();
+    // Keep track of this for when we're exiting the function
+    node.get_sym().borrow_mut().active_callee_saved.append(&mut active_callee);
+
+    allocate_stack(writer, (active_callee.len() * 4) as i32);
+
+    for (i, reg) in active_callee.iter().enumerate() {
+        writer.write(&format!("        str     w{}, [sp, {}]", reg, i * 4));
     }
 }
 
@@ -276,6 +314,14 @@ pub fn gen_func_exit(writer: &mut ASMWriter, node: &mut ASTNode) {
 
     // Write function exit label
     writer.write(&format!("{}2:", node.get_func_name()));
+
+    // If there are any callee-saved registers currently saved, we have to restore them
+    let active_callee = node.get_sym().borrow().get_active_callees();
+    for (i, reg) in active_callee.iter().enumerate() {
+        writer.write(&format!("        ldr     w{}, [sp, {}]", reg, i * 4));
+    }
+    allocate_stack(writer, -((active_callee.len() * 4) as i32));
+
     if num_bytes != 0 {
         writer.write(&format!("        add     sp, sp, {}", num_bytes));
     }
