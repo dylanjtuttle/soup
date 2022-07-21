@@ -33,9 +33,6 @@ impl ASMWriter {
 
     // Write a line to the assembly file
     pub fn write(&mut self, line: &str) {
-        // Print line as well so we can see the output in stdout
-        println!("{}", line);
-    
         // Attempt to write the line (with a bonus newline at the end), and panic if unable to
         match write!(self.file, "{}\n", line) {
             Ok(()) => {}

@@ -6,9 +6,7 @@ pub mod parser;
 pub mod semantic;
 pub mod code_gen;
 
-use crate::scanner::scanner_data::TokenType;
 use crate::scanner::scanner_driver::scanner;
-use crate::parser::parser_data::*;
 use crate::parser::parser_driver::parser;
 use crate::semantic::semantic_driver::semantic_checker;
 use crate::code_gen::code_gen_driver::code_gen;
@@ -23,35 +21,17 @@ fn main() {
 
     let code_file = &args[1];
 
-    println!("\nBEGIN SCANNER");
-
+    // Scanner
     let tokens = scanner(code_file);
 
-    for token in &tokens {
-        if token.token_type == TokenType::ID {
-            println!("{}: Token (ID): {}", token.line_num, token.lexeme);
-        } else {
-            println!("{}: Token: {}", token.line_num, token.lexeme);
-        }
-    }
-
-    println!("\nBEGIN PARSER");
-
+    // Parser
     let mut ast = parser(&tokens);
 
-    print_ast(&ast);
-
-    println!("\nBEGIN SEMANTIC CHECKING:\n");
-
+    // Semantic checker
     semantic_checker(&mut ast);
 
-    print_ast(&ast);
-
-    println!("\nBEGIN CODE GENERATION:\n");
-
+    // Code generation
     code_gen("asm/test.asm", &mut ast);
-
-    print_ast(&ast);
 }
 
 pub fn throw_warning(msg: &str) {
