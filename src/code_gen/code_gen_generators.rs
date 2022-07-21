@@ -17,6 +17,13 @@ pub fn gen_asm_main(writer: &mut ASMWriter) {
     writer.write("end:    ldp     x29, x30, [sp], 16");
 
     // Exit the program
+    writer.write(".data");
+    writer.write("last_newline: .string \"\\n\"");
+    writer.write(".align 4");
+    writer.write(".text");
+    writer.write("        adrp    x0, last_newline@PAGE");
+    writer.write("        add     x0, x0, last_newline@PAGEOFF");
+    writer.write("        bl      _printf");
     writer.write("        mov     x0, 0  // Return code 0");
     writer.write("        mov     x16, 1  // Sys call code to terminate program");
     writer.write("        svc     0x80  // Make system call");

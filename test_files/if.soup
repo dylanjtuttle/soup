@@ -1,0 +1,6 @@
+func main() returns void {
+    if true {
+        printf("true\n");
+    }
+    printf("after\n");
+}

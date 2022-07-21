@@ -8,6 +8,8 @@ use crate::throw_error;
 use crate::code_gen::code_gen_data::*;
 use crate::code_gen::code_gen_generators::*;
 
+use super::code_gen_traversals::traverse_prune;
+
 pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
     if node.node_type == "funcDecl" || node.node_type == "mainFuncDecl" {
         gen_func_enter(writer, node);
@@ -61,6 +63,52 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
             writer.write(&format!("        b       {}2", writer.get_current_func_name()));
             return true;
         }
+    }
+
+    if node.node_type == "if" {
+        // Generate label to jump to if condition is not satisfied
+        let after_label = writer.new_label();
+
+        // First, we need to evaluate the expression
+        let expr_reg = gen_expr(writer, &mut node.children[0]);
+
+        // Branch if equal to zero (false)
+        writer.write(&format!("        cmp     w{}, wzr", expr_reg));
+        writer.write(&format!("        b.eq    {}", after_label));
+
+        // Evaluate if block
+        traverse_prune(writer, &mut node.children[1]);
+
+        // Evaluate stuff after the if block (by exiting out of this traversal)
+        writer.write(&format!("        {}:", after_label));  // Write after label
+        return true;
+    }
+
+    if node.node_type == "ifElse" {
+        // Generate else and after labels to jump to
+        let else_label = writer.new_label();
+        let after_label = writer.new_label();
+
+        // First, we need to evaluate the expression
+        let expr_reg = gen_expr(writer, &mut node.children[0]);
+
+        // Branch to else block if equal to zero (false)
+        writer.write(&format!("        cmp     w{}, wzr", expr_reg));
+        writer.write(&format!("        b.eq    {}", else_label));
+
+        // Evaluate if block
+        traverse_prune(writer, &mut node.children[1]);
+        
+        // Branch past else block to after label
+        writer.write(&format!("        b       {}", after_label));
+
+        // Evaluate else block
+        writer.write(&format!("        {}:", else_label));  // Write else label
+        traverse_prune(writer, &mut node.children[2]);
+
+        // Evaluate stuff after the if-else block (by exiting out of this traversal)
+        writer.write(&format!("        {}:", after_label));  // Write after label
+        return true;
     }
 
     return false;
