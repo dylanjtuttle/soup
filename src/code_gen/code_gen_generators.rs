@@ -34,54 +34,36 @@ pub fn gen_expr(writer: &mut ASMWriter, node: &ASTNode) -> i32 {
             writer.free_reg(dest);
             return rhs;
 
-        } else if node.node_type == "+" {
+        } else if node.node_type == "+" || node.node_type == "+=" {
             writer.write(&format!("        add     w{}, w{}, w{}", dest, lhs, rhs));
             writer.free_reg(lhs);
             writer.free_reg(rhs);
             return dest;
 
-        } else if node.node_type == "+=" {
-            writer.write(&format!("        add     w{}, w{}, w{}", lhs, lhs, rhs));
-            writer.free_reg(dest);
-            writer.free_reg(rhs);
-            return lhs;
-
-        } else if node.node_type == "-" {
+        } else if node.node_type == "-" || node.node_type == "-=" {
             writer.write(&format!("        sub     w{}, w{}, w{}", dest, lhs, rhs));
             writer.free_reg(lhs);
             writer.free_reg(rhs);
             return dest;
 
-        } else if node.node_type == "-=" {
-            writer.write(&format!("        sub     w{}, w{}, w{}", lhs, lhs, rhs));
-            writer.free_reg(dest);
-            writer.free_reg(rhs);
-            return lhs;
-
-        } else if node.node_type == "*" {
+        } else if node.node_type == "*" || node.node_type == "*=" {
             writer.write(&format!("        mul     w{}, w{}, w{}", dest, lhs, rhs));
             writer.free_reg(lhs);
             writer.free_reg(rhs);
             return dest;
 
-        } else if node.node_type == "*=" {
-            writer.write(&format!("        mul     w{}, w{}, w{}", lhs, lhs, rhs));
-            writer.free_reg(dest);
-            writer.free_reg(rhs);
-            return lhs;
-
-        } else if node.node_type == "/" {
+        } else if node.node_type == "/" || node.node_type == "/=" {
             gen_division(writer, node, dest, lhs, rhs);
             writer.free_reg(lhs);
             writer.free_reg(rhs);
             return dest;
 
-        } else if node.node_type == "/=" {
-            gen_division(writer, node, lhs, lhs, rhs);
+        } else if node.node_type == "%" || node.node_type == "%=" {
+            gen_division(writer, node, dest, lhs, rhs);
+            writer.write(&format!("        msub    w{}, w{}, w{}, w{}", lhs, rhs, dest, lhs));
             writer.free_reg(dest);
             writer.free_reg(rhs);
             return lhs;
-
         }
 
     } else if is_unary(node) {
@@ -161,12 +143,13 @@ pub fn gen_division(writer: &mut ASMWriter, node: &ASTNode, dest: i32, lhs: i32,
     // Define error string
     writer.write(&format!("{}:", div_label));
     writer.write(".data");
-    writer.write(&format!("div_zero: .string \"Error: Line {}: Division by zero\\n\"", node.get_line_num()));
+    let div_zero_label = writer.new_label();
+    writer.write(&format!("{}: .string \"Error: Line {}: Division by zero\\n\"", div_zero_label, node.get_line_num()));
     writer.write(".align 4");
     writer.write(".text");
     // Call printf
-    writer.write("        adrp    x0, div_zero@PAGE");
-    writer.write("        add     x0, x0, div_zero@PAGEOFF");
+    writer.write(&format!("        adrp    x0, {}@PAGE", div_zero_label));
+    writer.write(&format!("        add     x0, x0, {}@PAGEOFF", div_zero_label));
     writer.write("        bl      _printf");
     // Exit the program
     writer.write("        mov     x0, 1  // Return code 1");
@@ -296,12 +279,13 @@ pub fn gen_func_exit(writer: &mut ASMWriter, node: &mut ASTNode) {
     if node.get_sym().borrow().returns != "void" {
         // Define error string
         writer.write(".data");
-        writer.write(&format!("no_ret: .string \"Error: Line {}: A control path reaches the end of a non-void function without returning a value\\n\"", node.get_line_num()));
+        let no_ret_label = writer.new_label();
+        writer.write(&format!("{}: .string \"Error: Line {}: A control path reaches the end of a non-void function without returning a value\\n\"", no_ret_label, node.get_line_num()));
         writer.write(".align 4");
         writer.write(".text");
         // Call printf
-        writer.write("        adrp    x0, no_ret@PAGE");
-        writer.write("        add     x0, x0, no_ret@PAGEOFF");
+        writer.write(&format!("        adrp    x0, {}@PAGE", no_ret_label));
+        writer.write(&format!("        add     x0, x0, {}@PAGEOFF", no_ret_label));
         writer.write("        bl      _printf");
         // Exit the program
         writer.write("        mov     x0, 1  // Return code 1");
