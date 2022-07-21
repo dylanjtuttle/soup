@@ -15,11 +15,12 @@ fn main() {
     // Get command line arguments
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 2 {
+    if args.len() < 3 {
         throw_error("No file given to compile, exiting now");
     }
 
     let code_file = &args[1];
+    let asm_file = &args[2];
 
     // Scanner
     let tokens = scanner(code_file);
@@ -31,7 +32,7 @@ fn main() {
     semantic_checker(&mut ast);
 
     // Code generation
-    code_gen("asm/test.asm", &mut ast);
+    code_gen(&asm_file, &mut ast);
 }
 
 pub fn throw_warning(msg: &str) {

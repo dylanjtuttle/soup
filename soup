@@ -1,0 +1,36 @@
+#!/opt/homebrew/bin/bash
+
+# Define directory to hold the generated assembly, object, and executable files
+ASM_DIR=$SOUP_DIR/asm
+
+# Create folder to hold assembly
+mkdir $ASM_DIR
+
+# Run compiler on compilee - command: [path/to/soup/executable] [path/to/compilee] [path/to/asm/file/to/generate]
+$SOUP_DIR/target/release/soup $1 $ASM_DIR/soup.asm
+
+# If the compiler ran successfully, move on to assemble and run the assembly file
+if [ $? -eq 0 ]
+    then
+
+    # Assemble compilee into an object file
+    as -arch arm64 -o $ASM_DIR/soup.o $ASM_DIR/soup.asm
+
+    # Link object file into executable
+    ld -o $ASM_DIR/soup $ASM_DIR/soup.o -lSystem -syslibroot `xcrun -sdk macosx --show-sdk-path` -e _start -arch arm64
+
+    # Run executable
+    $ASM_DIR/soup
+
+    # Keep track of exit code to return from the script
+    EXITCODE=$?
+
+    # Delete all assembly files, object files, and executables from the compilee
+    rm -rf $ASM_DIR
+
+    # Exit with the exit code of the executed compilee
+    exit $EXITCODE
+fi
+
+# Otherwise, exit with exit code 1
+exit 1
