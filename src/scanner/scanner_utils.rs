@@ -57,7 +57,7 @@ pub fn get_binary_ops(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
 // Given a character in the character list and a certain single character operator, either return a token for that operator,
 // the "equals" version of that operator (e.g. += for +), or nothing in the special case of a comment (which
 // may look like a division token at first!)
-fn get_binary_op(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, alt_type: TokenType, op_lexeme: &str) -> Option<Token> {
+pub fn get_binary_op(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, alt_type: TokenType, op_lexeme: &str) -> Option<Token> {
     // Initialize a binary operator token of the requested type
     let mut token = Token {token_type: op_type, lexeme: String::from(op_lexeme), line_num: chars[*i].line_num};
 
@@ -109,7 +109,7 @@ pub fn get_and_or(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, op_lexem
         *i += 2;
 
         // Return the corresponding token
-        return Some(Token {token_type: op_type, lexeme: String::from(op_lexeme), line_num: chars[*i].line_num});
+        return Some(Token {token_type: op_type, lexeme: String::from(op_lexeme), line_num: chars[*i - 2].line_num});
 
     } else {
         // Otherwise, this is an invalid token
@@ -170,7 +170,7 @@ pub fn get_reserved_word(chars: &Vec<Char>, i: &mut usize, reserved_type: TokenT
             *i += reserved.len();
 
             // Return a token corresponding to the reserved word
-            return Some(Token {token_type: reserved_type, lexeme: String::from(reserved), line_num: chars[*i].line_num});
+            return Some(Token {token_type: reserved_type, lexeme: String::from(reserved), line_num: chars[*i - reserved.len()].line_num});
         }
 
         // If there are enough chars but the chars do not match the reserved word, return None
@@ -194,8 +194,8 @@ pub fn is_reserved(actual: Vec<char>, reserved: &str) -> bool {
 pub fn has_enough_chars(chars: &Vec<Char>, i: &usize, num_chars: usize) -> bool {
     // For example, if we want to check if a character at index 8 of a length 10 character vector is the
     // first letter of the reserved word "while", we would get an index out of bounds error when checking
-    // if the next 5 characters are 'w', 'h', 'i', 'l', and 'e', because there aren't that many characters left!
-    chars.len() - i - 1 >= num_chars
+    // if the next 6 characters are 'w', 'h', 'i', 'l', 'e', and not an ID char because there aren't that many characters left!
+    (chars.len() as i32) - (*i as i32) - 1 >= (num_chars as i32)
 }
 
 // --------------------------------------------------------------------------------------
