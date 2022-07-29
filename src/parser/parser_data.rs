@@ -171,6 +171,11 @@ impl ASTNode {
         }
     }
 
+    // Check if the current (variable declaration) node has an assignment attached to it
+    pub fn has_assignment(&self) -> bool {
+        return self.children.len() == 3;
+    }
+
     // Format the data contained in this node
     pub fn display_string(&self) -> String {
         let mut display_string = format!("{{{}", self.node_type);

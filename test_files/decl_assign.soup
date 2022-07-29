@@ -1,0 +1,7 @@
+// Test the new feature allowing variable declarations to also include an assignment
+
+func main() returns void {
+    int x = 1;
+    x += 5;
+    printf("x = {}, x - 100 = {}", x, x - 100);
+}

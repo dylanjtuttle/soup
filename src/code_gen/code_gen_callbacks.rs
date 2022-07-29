@@ -16,6 +16,18 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
         writer.enter_func(node);
     }
 
+    // Variable declaration with an assignment
+    if node.node_type == "varDecl" && node.has_assignment() {
+        // Get the value of the expression on the right hand side of this assignment in a register
+        let rhs_reg = gen_expr(writer, node);
+
+        // Get the address of the variable to store the value in
+        let lhs_addr = node.get_sym().borrow().get_addr();
+
+        // Store the result of the expression at its address
+        writer.write(&format!("        str     w{}, [sp, {}]", rhs_reg, lhs_addr));
+    }
+
     if node.node_type == "="
     || node.node_type == "+="
     || node.node_type == "-="
@@ -170,8 +182,26 @@ pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
         // Define a label for the global variable
         let global_label = writer.new_label();
 
-        // Initialize the global variable to zero (works for ints and bools!)
-        writer.write(&format!("{}: .word 0", global_label));
+        // If the declaration has an assignment attached to it,
+        // we can just initialize it to that value right away
+        if node.has_assignment() {
+            // Get the value to assign the global variable to (we already know it's a literal)
+            let mut value = node.children[2].get_attr();
+
+            // Replace true/false with 1/0 if necessary
+            if value == "true" {
+                value = String::from("1");
+            } else if value == "false" {
+                value = String::from("0")
+            }
+
+            // Initialize the global variable with its value
+            writer.write(&format!("{}: .word {}", global_label, value));
+
+        } else {
+            // There is no assignment, so we can just initialize the global variable to zero
+            writer.write(&format!("{}: .word 0", global_label));
+        }
 
         // Store the label in the variable's symbol table
         node.get_sym().borrow_mut().label = Some(global_label);

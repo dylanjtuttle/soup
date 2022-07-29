@@ -35,6 +35,34 @@ pub fn pass1_post(node: &mut ASTNode, scope_stack: &mut ScopeStack, num_main_dec
         insert_symbol(func_symbol, scope_stack, node);
 
     } else if node_type == "globVarDecl" {
+        // If this declaration has an assignment attached to it, we have to ensure it is being assigned to a literal
+        if node.has_assignment() {
+            let value = &node.children[2];
+
+            // Get the type of the literal
+            // (can assume it's a literal because its only used at a point in the control flow where it must be a literal)
+            let value_type;
+            if value.node_type == "number" {
+                value_type = "int";
+            } else {
+                value_type = "bool";
+            }
+
+            // If the value isn't a literal
+            if value.node_type != "number"
+            && value.node_type != "true"
+            && value.node_type != "false" {
+                throw_error(&format!("Line {}: Global variable '{}' can only be initialized to a literal",
+                                          node.get_line_num(),
+                                          node.children[1].get_attr()));
+
+            // The value must also have the same type as the variable
+            } else if node.children[0].get_type() != value_type {
+                throw_error(&format!("Line {}: Type mismatch for =, operands must have same type ({} != {})",
+                                          node.get_line_num(), node.children[0].get_type(), value_type))
+            }
+        }
+
         // Get fields from the AST
         let var_name = &node.children[1].get_attr();
         let var_type = node.children[0].node_type.clone();
@@ -143,8 +171,8 @@ pub fn pass3_post(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
 
         // Both sides of a binary operation must have the same type
         if left_type != right_type {
-            throw_error(&format!("Line {}: Type mismatch for {}, operands must have same type",
-                                      node.get_line_num(), node.node_type))
+            throw_error(&format!("Line {}: Type mismatch for {}, operands must have same type ({} != {})",
+                                      node.get_line_num(), node.node_type, left_type, right_type))
         } else {
             // Types match, but we need to check if the types (even if they match) make sense with the operation
             if node.node_type == "&&" || node.node_type == "||" {

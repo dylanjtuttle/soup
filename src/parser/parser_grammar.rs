@@ -165,11 +165,26 @@ pub fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
     // Add child for the variable identifier
     var_decl_node.add_child(identifier_(tokens, current));
 
-    // Check to see if current token is a semicolon - if not, throw syntax error
+    // Check to see if current token is a semicolon
     current_token = &tokens[*current];
     if current_token.token_type != TokenType::SEMICOLON {
-        throw_error(&format!("Syntax Error on line {}: variable declaration must end with a semicolon \";\"",
-                    current_token.line_num));
+        // If the current token is not a semicolon, it could still be an assignment operator
+        if current_token.token_type == TokenType::ASSIGN {
+            // Consume the assignment token
+            consume_token(current);
+            // Parse an assignment expression on the other side
+            var_decl_node.add_child(assignmentexpression_(tokens, current));
+            // Check to see if current token is a semicolon
+            current_token = &tokens[*current];
+            if current_token.token_type != TokenType::SEMICOLON {
+                throw_error(&format!("Syntax Error on line {}: Expected semicolon \";\"",
+                                          &tokens[*current - 1].line_num));
+            }
+
+        } else {
+            throw_error(&format!("Syntax Error on line {}: variable declaration must end with a semicolon \";\"",
+                                      current_token.line_num));
+        }
     }
 
     // Consume the semicolon token and move on to the next one
