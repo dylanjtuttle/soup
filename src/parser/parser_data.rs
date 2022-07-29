@@ -6,6 +6,8 @@ use std::cell::RefCell;
 use crate::semantic::semantic_data::Symbol;
 
 #[derive(Clone)]
+#[derive(PartialEq)]
+#[derive(Debug)]
 pub struct ASTNode {
     pub node_type: String,
     pub attr: Option<String>,

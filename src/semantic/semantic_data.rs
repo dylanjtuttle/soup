@@ -93,6 +93,7 @@ impl ScopeStack {
 
 #[derive(Clone)]
 #[derive(PartialEq)]
+#[derive(Debug)]
 pub struct Symbol {
     pub name: String,
     pub type_sig: String,

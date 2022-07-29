@@ -29,7 +29,7 @@ pub fn start_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 //             | TRUE
 //             | FALSE
 //             ;
-fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -61,7 +61,7 @@ fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // type    	: BOOLEAN
 // 	        | INT
 // 	        ;
-fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -90,7 +90,7 @@ fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // globaldeclarations		: [globaldeclaration]+
 // 						    ;
-fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
+pub fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -111,7 +111,7 @@ fn globaldeclarations_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode>
 //                         | functiondeclaration
 //                         | mainfunctiondeclaration
 //                         ;
-fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -150,7 +150,7 @@ fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // variabledeclaration     : type identifier SEMICOLON
 //                         ;
-fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -183,7 +183,7 @@ fn variabledeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // identifier              : ID
 //                         ;
-fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -204,7 +204,7 @@ fn identifier_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // functiondeclaration     : functionheader block
 //                         ;
-fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -226,7 +226,7 @@ fn functiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // functionheader          : FUNC functiondeclarator RETURNS [type | VOID]
 //                         ;
-fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
+pub fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -283,7 +283,7 @@ fn functionheader_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
 
 // functiondeclarator      : identifier OPENPAR {formalparameterlist} CLOSEPAR
 //                         ;
-fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
+pub fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Create a vector to hold the AST nodes
     let mut node_vec = Vec::new();
 
@@ -326,7 +326,7 @@ fn functiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode>
 
 // formalparameterlist     : formalparameter [COMMA formalparameter]*
 //                         ;
-fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
+pub fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -366,7 +366,7 @@ fn formalparameterlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode
 
 // formalparameter         : type identifier
 //                         ;
-fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -386,7 +386,7 @@ fn formalparameter_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // mainfunctiondeclaration : FUNC mainfunctiondeclarator RETURNS VOID block
 //                         ;
-fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -450,7 +450,7 @@ fn mainfunctiondeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
 
 // mainfunctiondeclarator  : MAIN OPENPAR CLOSEPAR
 //                         ;
-fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -481,7 +481,7 @@ fn mainfunctiondeclarator_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode 
 
 // block                   : OPENBRACE {blockstatements} CLOSEBRACE
 //                         ;
-fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -516,7 +516,7 @@ fn block_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // blockstatements         : [blockstatement]+
 //                         ;
-fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
+pub fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -542,7 +542,7 @@ fn blockstatements_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
 // blockstatement          : variabledeclaration
 //                         | statement
 //                         ;
-fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -568,7 +568,7 @@ fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 //                         | IF expression statement ELSE statement
 //                         | WHILE expression statement
 //                         ;
-fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -740,7 +740,7 @@ fn statement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // statementexpression     : assignment
 //                         | functioninvocation
 //                         ;
-fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get next token
     let token_2 = &tokens[*current + 1];
 
@@ -758,7 +758,7 @@ fn statementexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 //                         | OPENPAR expression CLOSEPAR
 //                         | functioninvocation
 //                         ;
-fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -795,7 +795,7 @@ fn primary_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // argumentlist            : expression
 //                         | argumentlist COMMA expression
 //                         ;
-fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
+pub fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -840,7 +840,7 @@ fn argumentlist_(tokens: &Vec<Token>, current: &mut usize) -> Vec<ASTNode> {
 // functioninvocation      : identifier OPENPAR argumentlist CLOSEPAR
 //                         | identifier OPENPAR CLOSEPAR
 //                         ;
-fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let mut current_token = &tokens[*current];
 
@@ -882,7 +882,7 @@ fn functioninvocation_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // postfixexpression       : primary
 //                         | identifier
 //                         ;
-fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -907,7 +907,7 @@ fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 //                         | NOT unaryexpression
 //                         | postfixexpression
 //                         ;
-fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -946,7 +946,7 @@ fn unaryexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // multiplicativeexpression: unaryexpression multiplicativerhs
 //                         ;
-fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = unaryexpression_(tokens, current);
 
@@ -972,7 +972,7 @@ fn multiplicativeexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNod
 //  						| MOD unaryexpression multiplicativerhs
 //  						| /* nothing */
 //   						;
-fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
+pub fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1021,7 +1021,7 @@ fn multiplicativerhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
 
 // additiveexpression      : multiplicativeexpression additiverhs
 //                         ;
-fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = multiplicativeexpression_(tokens, current);
 
@@ -1046,7 +1046,7 @@ fn additiveexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // 						    | MINUS multiplicativeexpression additiverhs
 // 						    | /* nothing */
 // 						    ;
-fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
+pub fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1091,7 +1091,7 @@ fn additiverhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
 
 // relationalexpression    : additiveexpression relationalrhs
 //                         ;
-fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = additiveexpression_(tokens, current);
 
@@ -1118,7 +1118,7 @@ fn relationalexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // 						    | GEQ additiveexpression relationalrhs
 // 						    | /* nothing */
 // 						    ;
-fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
+pub fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1170,7 +1170,7 @@ fn relationalrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
 
 // equalityexpression      : relationalexpression equalityrhs
 //                         ;
-fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = relationalexpression_(tokens, current);
 
@@ -1195,7 +1195,7 @@ fn equalityexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // 						    | NEQ relationalexpression equalityrhs
 // 						    | /* nothing */
 // 						    ;
-fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
+pub fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1240,7 +1240,7 @@ fn equalityrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
 
 // conditionalandexpression: equalityexpression conditionalandrhs
 //                         ;
-fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = equalityexpression_(tokens, current);
 
@@ -1263,7 +1263,7 @@ fn conditionalandexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNod
 
 // conditionalandrhs		: {AND equalityexpression conditionalandrhs}
 // 						    ;
-fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
+pub fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1302,7 +1302,7 @@ fn conditionalandrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNod
 
 // conditionalorexpression : conditionalandexpression conditionalorrhs
 //                         ;
-fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse expression on left hand side
     let lhs = conditionalandexpression_(tokens, current);
 
@@ -1325,7 +1325,7 @@ fn conditionalorexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode
 
 // conditionalorrhs		: {OR conditionalandexpression conditionalorrhs}
 //                      ;
-fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
+pub fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode> {
     // Get current token
     let current_token = &tokens[*current];
 
@@ -1365,7 +1365,7 @@ fn conditionalorrhs_(tokens: &Vec<Token>, current: &mut usize) -> Option<ASTNode
 // assignmentexpression    : conditionalorexpression
 //                         | assignment
 //                         ;
-fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // The second token of an expression is =, +=, -=, etc...
     let token_2 = &tokens[*current + 1];
 
@@ -1393,7 +1393,7 @@ fn assignmentexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 // 						   : identifier MODEQ INTLIT
 // 						   : identifier POWEREQ INTLIT
 //                         ;
-fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Parse identifier on LHS of assignment
     let id_node = identifier_(tokens, current);
 
@@ -1538,6 +1538,6 @@ fn assignment_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // expression              : assignmentexpression
 //                         ;
-fn expression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
+pub fn expression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     return assignmentexpression_(tokens, current);
 }
