@@ -1,6 +1,8 @@
 # soup
 A simple programming language, built from scratch in Rust
 
+![ci workflow](https://github.com/dylanjtuttle/soup/actions/workflows/rust-ci.yml/badge.svg)
+
 ## Installation
 
 Note first that soup is designed solely to work on Mac M1 processors, and attempting to run it on any other architecture will not work. Blame Apple for wanting their ARM processors to be different than everyone elses...
@@ -26,7 +28,7 @@ $ cd soup
     export SOUP_DIR="[/absolute/path/to/soup/dir]"
     export PATH=$PATH:$SOUP
     ```
-    - Note that since `~/.bashrc` is executed once every time a terminal window is opened, so these two environment variables only take effect once you exit your current terminal window and open a new one.
+    - Note that since `~/.bashrc` is executed once every time a terminal window is opened, these two environment variables only take effect once you exit your current terminal window and open a new one.
 
 4. Compile the compiler with the following command:
 
