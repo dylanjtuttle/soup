@@ -32,5 +32,8 @@ if [ $? -eq 0 ]
     exit $EXITCODE
 fi
 
-# Otherwise, exit with exit code 1
+# Otherwise, delete the asm folder if it was created
+[[ -d asm ]] && rm -r asm
+
+# and then exit with exit code 1
 exit 1
