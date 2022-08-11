@@ -1,0 +1,12 @@
+// Test the exit() runtime library function
+
+func main() returns void {
+    int x = 0;
+    while true {
+        if x == 10 {
+            exit(0);
+        }
+        printf("true!!\n");
+        x += 1;
+    }
+}

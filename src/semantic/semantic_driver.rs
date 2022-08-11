@@ -35,9 +35,14 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     scope_stack.open_scope();
 
     // Add a symbol for everything in the runtime library
-    scope_stack.insert_symbol(String::from("getchar"), Rc::new(RefCell::new(Symbol::new(String::from("getchar"), String::from("f()"), String::from("int")))));
-    scope_stack.insert_symbol(String::from("halt"), Rc::new(RefCell::new(Symbol::new(String::from("halt"), String::from("f()"), String::from("void")))));
-    scope_stack.insert_symbol(String::from("printf"), Rc::new(RefCell::new(Symbol::new(String::from("printf"), String::from("f(string, ...)"), String::from("void")))));
+    scope_stack.insert_symbol(String::from("exit"),
+                  Rc::new(RefCell::new(Symbol::new(String::from("exit"),
+                  String::from("f(int)"),
+                  String::from("void")))));
+    scope_stack.insert_symbol(String::from("printf"),
+                              Rc::new(RefCell::new(Symbol::new(String::from("printf"),
+                              String::from("f(string, ...)"),
+                              String::from("void")))));
 
     // Open a new scope for the global symbols in anticipation of the first pass
     scope_stack.open_scope();

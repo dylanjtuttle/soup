@@ -23,4 +23,7 @@ pub fn code_gen(asm_filename: &str, ast: &mut ASTNode) {
 
     // Begin traversing the AST and generating code
     traverse_prune(&mut writer, ast);
+
+    // Finally, generate the runtime library
+    gen_runtime_lib(&mut writer);
 }

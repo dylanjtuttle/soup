@@ -29,6 +29,14 @@ pub fn gen_asm_main(writer: &mut ASMWriter) {
     writer.write("        svc     0x80  // Make system call");
 }
 
+pub fn gen_runtime_lib(writer: &mut ASMWriter) {
+    writer.write("\nexit1:");
+    writer.write("// Return code is passed into exit and is already in x0");
+    writer.write("        mov     x16, 1  // Sys call code to terminate program");
+    writer.write("        svc     0x80  // Make system call");
+}
+
+
 pub fn gen_expr(writer: &mut ASMWriter, node: &ASTNode) -> i32 {
     if is_binary(node) {
         // Generate the expressions on either side of the operator, each returned in a register
