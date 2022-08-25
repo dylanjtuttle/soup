@@ -5,7 +5,7 @@ A simple programming language, built from scratch in Rust
 
 ## Installation
 
-Note first that soup is designed solely to work on Mac M1 processors, and attempting to run it on any other architecture will not work. Blame Apple for wanting their ARM processors to be different than everyone elses...
+Note first that soup is designed solely to work on Mac M1 processors.
 
 1. First, ensure you have [installed Rust](https://www.rust-lang.org/tools/install)
 
