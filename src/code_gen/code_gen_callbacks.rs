@@ -1,5 +1,5 @@
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::parser::parser_data::ASTNode;
 use crate::semantic::semantic_data::Symbol;
@@ -29,11 +29,12 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
     }
 
     if node.node_type == "="
-    || node.node_type == "+="
-    || node.node_type == "-="
-    || node.node_type == "*="
-    || node.node_type == "/="
-    || node.node_type == "%=" {
+        || node.node_type == "+="
+        || node.node_type == "-="
+        || node.node_type == "*="
+        || node.node_type == "/="
+        || node.node_type == "%="
+    {
         // Get the value of the expression on the right hand side of this assignment in a register
         let rhs_reg = gen_expr(writer, node);
 
@@ -46,8 +47,14 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
             }
             None => {
                 // We have a global variable, so we can store the result of the expression at its label
-                writer.write(&format!("        adrp    x8, {}@PAGE", node.children[0].get_sym().borrow().get_label()));
-                writer.write(&format!("        add     x8, x8, {}@PAGEOFF", node.children[0].get_sym().borrow().get_label()));
+                writer.write(&format!(
+                    "        adrp    x8, {}@PAGE",
+                    node.children[0].get_sym().borrow().get_label()
+                ));
+                writer.write(&format!(
+                    "        add     x8, x8, {}@PAGEOFF",
+                    node.children[0].get_sym().borrow().get_label()
+                ));
                 writer.write(&format!("        str     w{}, [x8]", rhs_reg));
                 writer.free_reg(rhs_reg);
             }
@@ -72,7 +79,10 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
             writer.free_reg(expr);
 
             // Jump to the function exit
-            writer.write(&format!("        b       {}2", writer.get_current_func_name()));
+            writer.write(&format!(
+                "        b       {}2",
+                writer.get_current_func_name()
+            ));
             return true;
         }
     }
@@ -92,7 +102,7 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
         traverse_prune(writer, &mut node.children[1]);
 
         // Evaluate stuff after the if block (by exiting out of this traversal)
-        writer.write(&format!("        {}:", after_label));  // Write after label
+        writer.write(&format!("        {}:", after_label)); // Write after label
         return true;
     }
 
@@ -110,16 +120,16 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
 
         // Evaluate if block
         traverse_prune(writer, &mut node.children[1]);
-        
+
         // Branch past else block to after label
         writer.write(&format!("        b       {}", after_label));
 
         // Evaluate else block
-        writer.write(&format!("        {}:", else_label));  // Write else label
+        writer.write(&format!("        {}:", else_label)); // Write else label
         traverse_prune(writer, &mut node.children[2]);
 
         // Evaluate stuff after the if-else block (by exiting out of this traversal)
-        writer.write(&format!("        {}:", after_label));  // Write after label
+        writer.write(&format!("        {}:", after_label)); // Write after label
         return true;
     }
 
@@ -148,7 +158,7 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
 
         // Evaluate stuff after the while (by exiting out of this traversal)
         writer.while_labels.pop();
-        writer.write(&format!("        {}:", after_label));  // Write after label
+        writer.write(&format!("        {}:", after_label)); // Write after label
         return true;
     }
 
@@ -157,8 +167,8 @@ pub fn traverse_pre(writer: &mut ASMWriter, node: &mut ASTNode) -> bool {
         let while_labels = writer.while_labels.clone();
 
         let after_label = match while_labels.last() {
-            None => {String::from("")}
-            Some(after_label) => {after_label.clone()}
+            None => String::from(""),
+            Some(after_label) => after_label.clone(),
         };
 
         writer.write(&format!("        b       {}", after_label));
@@ -197,7 +207,6 @@ pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
 
             // Initialize the global variable with its value
             writer.write(&format!("{}: .word {}", global_label, value));
-
         } else {
             // There is no assignment, so we can just initialize the global variable to zero
             writer.write(&format!("{}: .word 0", global_label));
@@ -215,7 +224,11 @@ pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
         let mut new_string = String::from("");
         let mut skip = false;
 
-        for (i, char) in node.children[1].children[0].children[0].get_attr().chars().enumerate() {
+        for (i, char) in node.children[1].children[0].children[0]
+            .get_attr()
+            .chars()
+            .enumerate()
+        {
             if skip {
                 skip = false;
                 continue;
@@ -225,15 +238,43 @@ pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
             if char == '\\' {
                 let next_char = fstring.as_bytes()[i + 1] as char;
                 match next_char {
-                    'n' => {new_string.push_str("\\n"); skip = true;}
-                    't' => {new_string.push_str("\\t"); skip = true;}
-                    'r' => {new_string.push_str("\\r"); skip = true;}
-                    '\'' => {new_string.push_str("\\'"); skip = true;}
-                    '\"' => {new_string.push_str("\\\""); skip = true;}
-                    '\\' => {new_string.push_str("\\\\"); skip = true;}
-                    '{' => {new_string.push('{'); skip = true;}
-                    '}' => {new_string.push('}'); skip = true;}
-                    _ => {throw_error(&format!("Line {}: Invalid escape character '{}'", node.get_line_num(), next_char))}
+                    'n' => {
+                        new_string.push_str("\\n");
+                        skip = true;
+                    }
+                    't' => {
+                        new_string.push_str("\\t");
+                        skip = true;
+                    }
+                    'r' => {
+                        new_string.push_str("\\r");
+                        skip = true;
+                    }
+                    '\'' => {
+                        new_string.push_str("\\'");
+                        skip = true;
+                    }
+                    '\"' => {
+                        new_string.push_str("\\\"");
+                        skip = true;
+                    }
+                    '\\' => {
+                        new_string.push_str("\\\\");
+                        skip = true;
+                    }
+                    '{' => {
+                        new_string.push('{');
+                        skip = true;
+                    }
+                    '}' => {
+                        new_string.push('}');
+                        skip = true;
+                    }
+                    _ => throw_error(&format!(
+                        "Line {}: Invalid escape character '{}'",
+                        node.get_line_num(),
+                        next_char
+                    )),
                 }
             } else if char == '{' {
                 // We are probably seeing the beginning of a formatter
@@ -245,8 +286,10 @@ pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
                     num_formatters += 1;
 
                     if num_formatters == 6 {
-                        throw_error(&format!("Line {}: printf only accepts 5 format arguments",
-                                                 node.get_line_num()));
+                        throw_error(&format!(
+                            "Line {}: printf only accepts 5 format arguments",
+                            node.get_line_num()
+                        ));
                     }
 
                     // Now we need to figure out what the type of the value being passed into the formatter is
@@ -286,8 +329,15 @@ pub fn global_data(writer: &mut ASMWriter, node: &mut ASTNode) {
         // Update the version in the AST
         node.children[1].children[0].children[0].attr = Some(new_string);
         // Create a symbol table and add it to the string node
-        node.children[1].children[0].children[0].add_sym(Rc::new(RefCell::new(Symbol::new(String::from("string"), String::from("string"), String::from("string")))));
+        node.children[1].children[0].children[0].add_sym(Rc::new(RefCell::new(Symbol::new(
+            String::from("string"),
+            String::from("string"),
+            String::from("string"),
+        ))));
         // Keep track of that label for later
-        node.children[1].children[0].children[0].get_sym().borrow_mut().label = Some(label);
+        node.children[1].children[0].children[0]
+            .get_sym()
+            .borrow_mut()
+            .label = Some(label);
     }
 }

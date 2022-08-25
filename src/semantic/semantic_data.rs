@@ -1,18 +1,18 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use crate::parser::parser_data::ASTNode;
 use crate::throw_error;
 
 pub struct ScopeStack {
-    pub stack: Vec<HashMap<String, Rc<RefCell<Symbol>>>>
+    pub stack: Vec<HashMap<String, Rc<RefCell<Symbol>>>>,
 }
 
 impl ScopeStack {
     // Create a new scope stack
     pub fn new() -> Self {
-        ScopeStack{stack: Vec::new()}
+        ScopeStack { stack: Vec::new() }
     }
 
     // Return a mutable reference to the top scope in the stack, or None if the scope stack is empty
@@ -46,10 +46,8 @@ impl ScopeStack {
     pub fn find_symbol(&self, search_name: &str) -> Option<Rc<RefCell<Symbol>>> {
         // Iterate backwards through the scope stack (i.e. starting at the top scope and moving downwards)
         for symbol_table in self.stack.iter().rev() {
-
             // Search through each entry in the symbol table for the given name
             for (name, symbol) in symbol_table {
-
                 // If we find a symbol with that name, return a reference to it
                 if name == search_name {
                     return Some(Rc::clone(symbol));
@@ -65,7 +63,7 @@ impl ScopeStack {
     pub fn find_in_scope(&mut self, search_name: &str) -> bool {
         match self.peek() {
             // If the scope stack is empty, we obviously won't be able to find the symbol
-            None => {false}
+            None => false,
             Some(symbol_table) => {
                 // Search through each entry in the symbol table for the given name
                 for (name, _symbol) in symbol_table {
@@ -91,9 +89,7 @@ impl ScopeStack {
 // SYMBOL
 // -----------------------------------------------------------------
 
-#[derive(Clone)]
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Symbol {
     pub name: String,
     pub type_sig: String,
@@ -107,21 +103,29 @@ pub struct Symbol {
 impl Symbol {
     // Create a new symbol
     pub fn new(name: String, type_sig: String, returns: String) -> Self {
-        Symbol{name: name, type_sig: type_sig, returns: returns, label: None, addr: None, stored_bytes: 0, active_callee_saved: vec![]}
+        Symbol {
+            name: name,
+            type_sig: type_sig,
+            returns: returns,
+            label: None,
+            addr: None,
+            stored_bytes: 0,
+            active_callee_saved: vec![],
+        }
     }
 
     pub fn get_label(&self) -> String {
         return match &self.label {
-            None => String::from("LABEL"),  // Should never happen, indicates an error on my end
-            Some(label) => label.clone()
-        }
+            None => String::from("LABEL"), // Should never happen, indicates an error on my end
+            Some(label) => label.clone(),
+        };
     }
 
     pub fn get_addr(&self) -> i32 {
         return match &self.addr {
-            None => -1,  // Should never happen, indicates an error on my end
-            Some(addr) => *addr
-        }
+            None => -1, // Should never happen, indicates an error on my end
+            Some(addr) => *addr,
+        };
     }
 
     pub fn get_active_callees(&self) -> Vec<usize> {

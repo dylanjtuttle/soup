@@ -1,5 +1,5 @@
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::parser::parser_data::ASTNode;
 use crate::semantic::semantic_data::Symbol;
@@ -83,14 +83,18 @@ pub fn allocate_stack(writer: &mut ASMWriter, mut allocate: i32) {
 }
 
 // Loop through every variable declaration (including parameters) and increment their memory address by the given amount
-pub fn increment_addrs(node: &ASTNode, increment: i32, already_incremented: &mut Vec<Rc<RefCell<Symbol>>>) {
+pub fn increment_addrs(
+    node: &ASTNode,
+    increment: i32,
+    already_incremented: &mut Vec<Rc<RefCell<Symbol>>>,
+) {
     if node.node_type == "varDecl" || node.node_type == "parameter" {
         match &node.sym {
             None => {}
             Some(sym) => {
                 if !already_incremented.contains(sym) {
                     already_incremented.push(Rc::clone(sym));
-    
+
                     match &mut sym.borrow_mut().addr {
                         None => {}
                         Some(addr) => {

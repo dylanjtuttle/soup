@@ -6,15 +6,53 @@ mod tests {
     #[test]
     fn test_function_header() {
         // func test_func() returns void {;}
-        let tokens = vec![Token{token_type: TokenType::FUNC, lexeme: String::from("func"), line_num: 1},
-                                      Token{token_type: TokenType::ID, lexeme: String::from("test_func"), line_num: 1},
-                                      Token{token_type: TokenType::OPENPAR, lexeme: String::from("("), line_num: 1},
-                                      Token{token_type: TokenType::CLOSEPAR, lexeme: String::from(")"), line_num: 1},
-                                      Token{token_type: TokenType::RETURNS, lexeme: String::from("returns"), line_num: 1},
-                                      Token{token_type: TokenType::VOID, lexeme: String::from("void"), line_num: 1},
-                                      Token{token_type: TokenType::OPENBRACE, lexeme: String::from("{"), line_num: 1},
-                                      Token{token_type: TokenType::SEMICOLON, lexeme: String::from(";"), line_num: 1},
-                                      Token{token_type: TokenType::CLOSEBRACE, lexeme: String::from("}"), line_num: 1}];
+        let tokens = vec![
+            Token {
+                token_type: TokenType::FUNC,
+                lexeme: String::from("func"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::ID,
+                lexeme: String::from("test_func"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::OPENPAR,
+                lexeme: String::from("("),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::CLOSEPAR,
+                lexeme: String::from(")"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::RETURNS,
+                lexeme: String::from("returns"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::VOID,
+                lexeme: String::from("void"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::OPENBRACE,
+                lexeme: String::from("{"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::SEMICOLON,
+                lexeme: String::from(";"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::CLOSEBRACE,
+                lexeme: String::from("}"),
+                line_num: 1,
+            },
+        ];
 
         let mut func = ASTNode::new("funcDecl", None, Some(1));
         let id = ASTNode::new("id", Some(String::from("test_func")), Some(1));
@@ -34,12 +72,38 @@ mod tests {
     #[test]
     fn test_binary_operator_precedence() {
         // 1 + 2 * 3;
-        let tokens = vec![Token{token_type: TokenType::INTLIT, lexeme: String::from("1"), line_num: 1},
-                                      Token{token_type: TokenType::PLUS, lexeme: String::from("+"), line_num: 1},
-                                      Token{token_type: TokenType::INTLIT, lexeme: String::from("2"), line_num: 1},
-                                      Token{token_type: TokenType::MULT, lexeme: String::from("*"), line_num: 1},
-                                      Token{token_type: TokenType::INTLIT, lexeme: String::from("3"), line_num: 1},
-                                      Token{token_type: TokenType::SEMICOLON, lexeme: String::from(";"), line_num: 1}];
+        let tokens = vec![
+            Token {
+                token_type: TokenType::INTLIT,
+                lexeme: String::from("1"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::PLUS,
+                lexeme: String::from("+"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::INTLIT,
+                lexeme: String::from("2"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::MULT,
+                lexeme: String::from("*"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::INTLIT,
+                lexeme: String::from("3"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::SEMICOLON,
+                lexeme: String::from(";"),
+                line_num: 1,
+            },
+        ];
 
         let mut plus = ASTNode::new("+", None, Some(1));
         let mut times = ASTNode::new("*", None, Some(1));
@@ -61,10 +125,28 @@ mod tests {
     #[test]
     fn test_assignmentexpression() {
         // x = 1;
-        let mut tokens = vec![Token{token_type: TokenType::ID, lexeme: String::from("x"), line_num: 1},
-                                          Token{token_type: TokenType::ASSIGN, lexeme: String::from("="), line_num: 1},
-                                          Token{token_type: TokenType::INTLIT, lexeme: String::from("1"), line_num: 1},
-                                          Token{token_type: TokenType::SEMICOLON, lexeme: String::from(";"), line_num: 1}];
+        let mut tokens = vec![
+            Token {
+                token_type: TokenType::ID,
+                lexeme: String::from("x"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::ASSIGN,
+                lexeme: String::from("="),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::INTLIT,
+                lexeme: String::from("1"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::SEMICOLON,
+                lexeme: String::from(";"),
+                line_num: 1,
+            },
+        ];
 
         let mut assign = ASTNode::new("=", None, Some(1));
         let id = ASTNode::new("id", Some(String::from("x")), Some(1));
@@ -76,8 +158,13 @@ mod tests {
         assert_eq!(assign, assignmentexpression_(&tokens, &mut 0));
 
         // x <= 1;
-        tokens[1] = Token{token_type: TokenType::LEQ, lexeme: String::from("<="), line_num: 1};
-        assign.node_type = String::from("<="); assign.attr = None;
+        tokens[1] = Token {
+            token_type: TokenType::LEQ,
+            lexeme: String::from("<="),
+            line_num: 1,
+        };
+        assign.node_type = String::from("<=");
+        assign.attr = None;
 
         assert_eq!(assign, assignmentexpression_(&tokens, &mut 0));
     }

@@ -1,8 +1,8 @@
 use crate::parser::parser_data::ASTNode;
 
 use crate::code_gen::code_gen_data::*;
-use crate::code_gen::code_gen_traversals::*;
 use crate::code_gen::code_gen_generators::*;
+use crate::code_gen::code_gen_traversals::*;
 
 // -----------------------------------------------------------------
 // CODE GENERATOR

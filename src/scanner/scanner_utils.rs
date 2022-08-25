@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use crate::scanner::scanner_data::{Token, TokenType, Char};
+use crate::scanner::scanner_data::{Char, Token, TokenType};
 use crate::throw_error;
 
 // --------------------------------------------------------------------------------------
@@ -21,14 +21,50 @@ pub fn get_separators(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
     let line_num = chars[*i - 1].line_num;
 
     match char {
-        '(' => {return Some(Token {token_type: TokenType::OPENPAR, lexeme: String::from("("), line_num: line_num});}
-        ')' => {return Some(Token {token_type: TokenType::CLOSEPAR, lexeme: String::from(")"), line_num: line_num});}
-        '{' => {return Some(Token {token_type: TokenType::OPENBRACE, lexeme: String::from("{"), line_num: line_num});}
-        '}' => {return Some(Token {token_type: TokenType::CLOSEBRACE, lexeme: String::from("}"), line_num: line_num});}
-        ';' => {return Some(Token {token_type: TokenType::SEMICOLON, lexeme: String::from(";"), line_num: line_num});}
-        ',' => {return Some(Token {token_type: TokenType::COMMA, lexeme: String::from(","), line_num: line_num});}
+        '(' => {
+            return Some(Token {
+                token_type: TokenType::OPENPAR,
+                lexeme: String::from("("),
+                line_num: line_num,
+            });
+        }
+        ')' => {
+            return Some(Token {
+                token_type: TokenType::CLOSEPAR,
+                lexeme: String::from(")"),
+                line_num: line_num,
+            });
+        }
+        '{' => {
+            return Some(Token {
+                token_type: TokenType::OPENBRACE,
+                lexeme: String::from("{"),
+                line_num: line_num,
+            });
+        }
+        '}' => {
+            return Some(Token {
+                token_type: TokenType::CLOSEBRACE,
+                lexeme: String::from("}"),
+                line_num: line_num,
+            });
+        }
+        ';' => {
+            return Some(Token {
+                token_type: TokenType::SEMICOLON,
+                lexeme: String::from(";"),
+                line_num: line_num,
+            });
+        }
+        ',' => {
+            return Some(Token {
+                token_type: TokenType::COMMA,
+                lexeme: String::from(","),
+                line_num: line_num,
+            });
+        }
         // Will never happen since we already matched one of the above separators
-        _ => {return None}
+        _ => return None,
     }
 }
 
@@ -40,38 +76,67 @@ pub fn get_separators(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
 // return the correct corresponding token (or nothing in the case of a comment, which may look like a division token at first!)
 pub fn get_binary_ops(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
     match chars[*i].char_val {
-        '+' => {return get_binary_op(chars, i, TokenType::PLUS, TokenType::PLUSEQ, "+");}
-        '-' => {return get_binary_op(chars, i, TokenType::MINUS, TokenType::MINUSEQ, "-");}
-        '*' => {return get_binary_op(chars, i, TokenType::MULT, TokenType::MULTEQ, "*");}
-        '/' => {return get_binary_op(chars, i, TokenType::DIV, TokenType::DIVEQ, "/");}
-        '%' => {return get_binary_op(chars, i, TokenType::MOD, TokenType::MODEQ, "%");}
-        '<' => {return get_binary_op(chars, i, TokenType::LT, TokenType::LEQ, "<");}
-        '>' => {return get_binary_op(chars, i, TokenType::GT, TokenType::GEQ, ">");}
-        '=' => {return get_binary_op(chars, i, TokenType::ASSIGN, TokenType::EQ, "=");}
-        '!' => {return get_binary_op(chars, i, TokenType::NOT, TokenType::NEQ, "!");}
+        '+' => {
+            return get_binary_op(chars, i, TokenType::PLUS, TokenType::PLUSEQ, "+");
+        }
+        '-' => {
+            return get_binary_op(chars, i, TokenType::MINUS, TokenType::MINUSEQ, "-");
+        }
+        '*' => {
+            return get_binary_op(chars, i, TokenType::MULT, TokenType::MULTEQ, "*");
+        }
+        '/' => {
+            return get_binary_op(chars, i, TokenType::DIV, TokenType::DIVEQ, "/");
+        }
+        '%' => {
+            return get_binary_op(chars, i, TokenType::MOD, TokenType::MODEQ, "%");
+        }
+        '<' => {
+            return get_binary_op(chars, i, TokenType::LT, TokenType::LEQ, "<");
+        }
+        '>' => {
+            return get_binary_op(chars, i, TokenType::GT, TokenType::GEQ, ">");
+        }
+        '=' => {
+            return get_binary_op(chars, i, TokenType::ASSIGN, TokenType::EQ, "=");
+        }
+        '!' => {
+            return get_binary_op(chars, i, TokenType::NOT, TokenType::NEQ, "!");
+        }
         // Will never happen since we already matched one of the above operators
-        _ => {return None;}
+        _ => {
+            return None;
+        }
     }
 }
 
 // Given a character in the character list and a certain single character operator, either return a token for that operator,
 // the "equals" version of that operator (e.g. += for +), or nothing in the special case of a comment (which
 // may look like a division token at first!)
-pub fn get_binary_op(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, alt_type: TokenType, op_lexeme: &str) -> Option<Token> {
+pub fn get_binary_op(
+    chars: &Vec<Char>,
+    i: &mut usize,
+    op_type: TokenType,
+    alt_type: TokenType,
+    op_lexeme: &str,
+) -> Option<Token> {
     // Initialize a binary operator token of the requested type
-    let mut token = Token {token_type: op_type, lexeme: String::from(op_lexeme), line_num: chars[*i].line_num};
+    let mut token = Token {
+        token_type: op_type,
+        lexeme: String::from(op_lexeme),
+        line_num: chars[*i].line_num,
+    };
 
     // Check to see if token is 'op=', not just 'op' (for example, '+=' or '<=' instead of just '+' or '<')
     if chars[*i + 1].char_val == '=' {
         // Update token information
         token.token_type = alt_type;
         token.lexeme.push('=');
-        
+
         // Skip the next char, since it is a part of our current token
         *i += 2;
 
         return Some(token);
-
     } else if op_type == TokenType::DIV && chars[*i + 1].char_val == '/' {
         // We have a comment, loop until we find a newline character
         let mut comment_char = chars[*i].char_val;
@@ -81,7 +146,6 @@ pub fn get_binary_op(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, alt_t
         }
 
         return None;
-
     } else {
         // Nothing fancy is going on
 
@@ -91,7 +155,6 @@ pub fn get_binary_op(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, alt_t
         // Return the token
         return Some(token);
     }
-
 }
 
 // --------------------------------------------------------------------------------------
@@ -101,16 +164,25 @@ pub fn get_binary_op(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, alt_t
 // Given a character in the character list, knowing it is either '&' or '|', make sure
 // the next character is also '&' or '|' respectively and return the corresponding token,
 // or throw an error otherwise
-pub fn get_and_or(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, op_lexeme: &str) -> Option<Token> {
+pub fn get_and_or(
+    chars: &Vec<Char>,
+    i: &mut usize,
+    op_type: TokenType,
+    op_lexeme: &str,
+) -> Option<Token> {
     // Check to see if the token is '&&' or '||' as it should be, depending on what the first character is
     if (op_type == TokenType::AND && chars[*i + 1].char_val == '&')
-    || (op_type == TokenType::OR && chars[*i + 1].char_val == '|') {
+        || (op_type == TokenType::OR && chars[*i + 1].char_val == '|')
+    {
         // Skip the next char, since it is a part of our current token
         *i += 2;
 
         // Return the corresponding token
-        return Some(Token {token_type: op_type, lexeme: String::from(op_lexeme), line_num: chars[*i - 2].line_num});
-
+        return Some(Token {
+            token_type: op_type,
+            lexeme: String::from(op_lexeme),
+            line_num: chars[*i - 2].line_num,
+        });
     } else {
         // Otherwise, this is an invalid token
         throw_error(&format!("Unrecognized token '{}'", chars[*i].char_val));
@@ -126,25 +198,35 @@ pub fn get_and_or(chars: &Vec<Char>, i: &mut usize, op_type: TokenType, op_lexem
 // loop through all of the possible reserved words and check if
 // the given character is the start of any of them
 pub fn get_reserved_words(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
-    let reserved_types = vec![TokenType::IF, TokenType::INT,
-                                              TokenType::TRUE, TokenType::BOOL,
-                                              TokenType::VOID, TokenType::ELSE,
-                                              TokenType::FUNC, TokenType::MAIN,
-                                              TokenType::FALSE, TokenType::WHILE,
-                                              TokenType::BREAK, TokenType::RETURN,
-                                              TokenType::RETURNS];
-                                            
-    let reserved_lexemes = vec!["if", "int", "true", "bool",
-                                           "void", "else", "func", "main",
-                                           "false", "while", "break",
-                                           "return", "returns"];
-       
+    let reserved_types = vec![
+        TokenType::IF,
+        TokenType::INT,
+        TokenType::TRUE,
+        TokenType::BOOL,
+        TokenType::VOID,
+        TokenType::ELSE,
+        TokenType::FUNC,
+        TokenType::MAIN,
+        TokenType::FALSE,
+        TokenType::WHILE,
+        TokenType::BREAK,
+        TokenType::RETURN,
+        TokenType::RETURNS,
+    ];
+
+    let reserved_lexemes = vec![
+        "if", "int", "true", "bool", "void", "else", "func", "main", "false", "while", "break",
+        "return", "returns",
+    ];
+
     // Loop through the reserved words and try to match each
     // If one matches, return the corresponding token
     for j in 0..reserved_types.len() {
         match get_reserved_word(chars, i, reserved_types[j], reserved_lexemes[j]) {
             None => {}
-            Some(token) => {return Some(token);}
+            Some(token) => {
+                return Some(token);
+            }
         }
     }
 
@@ -155,7 +237,12 @@ pub fn get_reserved_words(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
 
 // Given a character in the character list and a particular reserved word,
 // check if the given character is the start of that reserved word
-pub fn get_reserved_word(chars: &Vec<Char>, i: &mut usize, reserved_type: TokenType, reserved: &str) -> Option<Token> {
+pub fn get_reserved_word(
+    chars: &Vec<Char>,
+    i: &mut usize,
+    reserved_type: TokenType,
+    reserved: &str,
+) -> Option<Token> {
     // Check if there are enough characters in the list to check for the reserved word
     if has_enough_chars(chars, i, reserved.len()) {
         // Form a list of chars so we can turn it into a string and check if it equals the given reserved word
@@ -170,7 +257,11 @@ pub fn get_reserved_word(chars: &Vec<Char>, i: &mut usize, reserved_type: TokenT
             *i += reserved.len();
 
             // Return a token corresponding to the reserved word
-            return Some(Token {token_type: reserved_type, lexeme: String::from(reserved), line_num: chars[*i - reserved.len()].line_num});
+            return Some(Token {
+                token_type: reserved_type,
+                lexeme: String::from(reserved),
+                line_num: chars[*i - reserved.len()].line_num,
+            });
         }
 
         // If there are enough chars but the chars do not match the reserved word, return None
@@ -227,7 +318,11 @@ pub fn get_identifier(chars: &Vec<Char>, i: &mut usize) -> Token {
     *i += 1;
 
     // Return an 'identifier' token, with the newly created lexeme
-    return Token {token_type: TokenType::ID, lexeme: id_lexeme, line_num: line_num};
+    return Token {
+        token_type: TokenType::ID,
+        lexeme: id_lexeme,
+        line_num: line_num,
+    };
 }
 
 // --------------------------------------------------------------------------------------
@@ -259,7 +354,11 @@ pub fn get_int_lits(chars: &Vec<Char>, i: &mut usize) -> Token {
     *i += 1;
 
     // Return an 'integer literal' token, with the newly created lexeme
-    return Token {token_type: TokenType::INTLIT, lexeme: int_lit_lexeme, line_num: chars[*i].line_num};
+    return Token {
+        token_type: TokenType::INTLIT,
+        lexeme: int_lit_lexeme,
+        line_num: chars[*i].line_num,
+    };
 }
 
 // --------------------------------------------------------------------------------------
@@ -287,7 +386,11 @@ pub fn get_str_lits(chars: &Vec<Char>, i: &mut usize) -> Token {
     *i += 1;
 
     // Return a 'string literal' token, with the newly created lexeme
-    return Token {token_type: TokenType::STRLIT, lexeme: string_lexeme, line_num: chars[*i].line_num};
+    return Token {
+        token_type: TokenType::STRLIT,
+        lexeme: string_lexeme,
+        line_num: chars[*i].line_num,
+    };
 }
 
 // --------------------------------------------------------------------------------------
@@ -296,7 +399,10 @@ pub fn get_str_lits(chars: &Vec<Char>, i: &mut usize) -> Token {
 
 // Returns true if a character is in a..z, A..Z, 0..9, or is an underscore, and false otherwise
 pub fn is_id_char(id_char: char) -> bool {
-    (id_char >= 'a' && id_char <= 'z') || (id_char >= 'A' && id_char <= 'Z') || is_digit(id_char) || (id_char == '_')
+    (id_char >= 'a' && id_char <= 'z')
+        || (id_char >= 'A' && id_char <= 'Z')
+        || is_digit(id_char)
+        || (id_char == '_')
 }
 
 // Returns true if a character is in 0..9
@@ -322,11 +428,17 @@ pub fn get_chars(file: &str) -> Vec<Char> {
                 // Loop through each character in the line
                 for ch in line_str.chars() {
                     // Add the character to the vector
-                    char_vec.push(Char{char_val: ch, line_num: line_num});
+                    char_vec.push(Char {
+                        char_val: ch,
+                        line_num: line_num,
+                    });
                 }
 
                 // Make sure a newline character is included in the vector at the end of each line
-                char_vec.push(Char{char_val: '\n', line_num: line_num});
+                char_vec.push(Char {
+                    char_val: '\n',
+                    line_num: line_num,
+                });
             }
         }
     }
@@ -337,7 +449,9 @@ pub fn get_chars(file: &str) -> Vec<Char> {
 
 // Returns an Iterator to the Reader of the lines of the file.
 pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
+where
+    P: AsRef<Path>,
+{
     let file = File::open(filename)?;
     // Wrap the output in a Result to allow for error checking
     Ok(io::BufReader::new(file).lines())

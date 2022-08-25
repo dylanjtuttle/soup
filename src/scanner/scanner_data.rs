@@ -3,16 +3,14 @@
 // -------------------------------------------------------------------------------------------------------------
 
 // Struct to hold character data along with the line of the file the character is on
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Char {
     pub char_val: char,
     pub line_num: i32,
 }
 
 // Struct to hold information about a token, like its type, its lexeme, and the line of the file it is found on
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
@@ -20,9 +18,7 @@ pub struct Token {
 }
 
 // An enumeration to define Token types for easy comparison
-#[derive(Debug)]
-#[derive(PartialEq)]
-#[derive(Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {
     ID,
     STRLIT,
@@ -66,5 +62,5 @@ pub enum TokenType {
     CLOSEBRACE,
     SEMICOLON,
     COMMA,
-    EOF
+    EOF,
 }

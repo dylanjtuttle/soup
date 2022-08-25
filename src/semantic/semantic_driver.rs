@@ -1,9 +1,9 @@
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::parser::parser_data::ASTNode;
-use crate::semantic::semantic_data::*;
 use crate::semantic::semantic_callbacks::*;
+use crate::semantic::semantic_data::*;
 use crate::throw_error;
 
 // -----------------------------------------------------------------
@@ -12,15 +12,15 @@ use crate::throw_error;
 
 pub fn semantic_checker(ast: &mut ASTNode) {
     // This semantic checker will perform five traversals of the AST:
-    // 
+    //
     // pass 1 - post-order - collects information about global declarations
-    // 
+    //
     // pass 2 - pre/post-order - figures out what all the identifiers refer to
     //                           deals with the scope stack, opens up a new scope
     //                           in the pre pass and closes it in the post pass
-    // 
+    //
     // pass 3 - post-order - full type checking
-    // 
+    //
     // pass 4 - pre/post-order - ensure break statements are inside while loops
     //                           and if/while conditions are of boolean type
     // pass 5 - pre/post-order - various checks of return statements and their functions
@@ -35,14 +35,22 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     scope_stack.open_scope();
 
     // Add a symbol for everything in the runtime library
-    scope_stack.insert_symbol(String::from("exit"),
-                  Rc::new(RefCell::new(Symbol::new(String::from("exit"),
-                  String::from("f(int)"),
-                  String::from("void")))));
-    scope_stack.insert_symbol(String::from("printf"),
-                              Rc::new(RefCell::new(Symbol::new(String::from("printf"),
-                              String::from("f(string, ...)"),
-                              String::from("void")))));
+    scope_stack.insert_symbol(
+        String::from("exit"),
+        Rc::new(RefCell::new(Symbol::new(
+            String::from("exit"),
+            String::from("f(int)"),
+            String::from("void"),
+        ))),
+    );
+    scope_stack.insert_symbol(
+        String::from("printf"),
+        Rc::new(RefCell::new(Symbol::new(
+            String::from("printf"),
+            String::from("f(string, ...)"),
+            String::from("void"),
+        ))),
+    );
 
     // Open a new scope for the global symbols in anticipation of the first pass
     scope_stack.open_scope();
@@ -70,7 +78,6 @@ pub fn semantic_checker(ast: &mut ASTNode) {
     // Begin fifth pass
     pass5(ast, &mut String::from("None"));
 }
-
 
 // -----------------------------------------------------------------
 // AST TRAVERSALS

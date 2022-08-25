@@ -1,6 +1,6 @@
-use crate::scanner::scanner_data::Token;
 use crate::parser::parser_data::*;
 use crate::parser::parser_grammar::*;
+use crate::scanner::scanner_data::Token;
 
 // -----------------------------------------------------------------
 // PARSER

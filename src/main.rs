@@ -1,15 +1,15 @@
-use std::process;
 use std::env;
+use std::process;
 
-pub mod scanner;
-pub mod parser;
-pub mod semantic;
 pub mod code_gen;
+pub mod parser;
+pub mod scanner;
+pub mod semantic;
 
-use crate::scanner::scanner_driver::scanner;
-use crate::parser::parser_driver::parser;
-use crate::semantic::semantic_driver::semantic_checker;
 use crate::code_gen::code_gen_driver::code_gen;
+use crate::parser::parser_driver::parser;
+use crate::scanner::scanner_driver::scanner;
+use crate::semantic::semantic_driver::semantic_checker;
 
 fn main() {
     // Get command line arguments

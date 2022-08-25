@@ -1,7 +1,7 @@
 use crate::parser::parser_data::ASTNode;
 
-use crate::code_gen::code_gen_data::*;
 use crate::code_gen::code_gen_callbacks::*;
+use crate::code_gen::code_gen_data::*;
 
 // -----------------------------------------------------------------
 // CODE GENERATION TRAVERSAL

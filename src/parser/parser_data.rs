@@ -1,13 +1,11 @@
+use std::cell::RefCell;
 use std::io;
 use std::io::Write;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use crate::semantic::semantic_data::Symbol;
 
-#[derive(Clone)]
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ASTNode {
     pub node_type: String,
     pub attr: Option<String>,
@@ -36,7 +34,7 @@ impl ASTNode {
     pub fn add_child(&mut self, new_node: ASTNode) {
         self.children.push(new_node);
     }
-  
+
     pub fn add_children(&mut self, new_nodes: Vec<ASTNode>) {
         for node in new_nodes {
             self.children.push(node);
@@ -73,18 +71,14 @@ impl ASTNode {
     pub fn get_attr(&self) -> String {
         match &self.attr {
             None => String::from("ATTR"), // Should never happen, indicates an error on my end
-            Some(attr) => {
-                attr.clone()
-            }
+            Some(attr) => attr.clone(),
         }
     }
 
     pub fn get_line_num(&self) -> i32 {
         match self.line_num {
-            None => 0,  // Should never happen, indicates an error on my end
-            Some(line_num) => {
-                line_num
-            }
+            None => 0, // Should never happen, indicates an error on my end
+            Some(line_num) => line_num,
         }
     }
 
@@ -93,34 +87,39 @@ impl ASTNode {
             None => {
                 match &self.sym {
                     None => {
-                        if self.node_type == "int" || self.node_type == "bool" || self.node_type == "string" {
+                        if self.node_type == "int"
+                            || self.node_type == "bool"
+                            || self.node_type == "string"
+                        {
                             self.node_type.clone()
                         } else {
-                            String::from("NO TYPE")  // Should never happen, indicates an error on my end
+                            String::from("NO TYPE") // Should never happen, indicates an error on my end
                         }
                     }
-                    Some(sym) => {sym.borrow().returns.clone()}
+                    Some(sym) => sym.borrow().returns.clone(),
                 }
             }
-            Some(type_sig) => {
-                type_sig.clone()
-            }
+            Some(type_sig) => type_sig.clone(),
         }
     }
 
     pub fn get_func_name(&self) -> String {
         return match &self.sym {
-            None => String::from("FUNC"),  // Should never happen, indicates an error on my end
-            Some(sym) => sym.borrow().name.clone()
-        }
+            None => String::from("FUNC"), // Should never happen, indicates an error on my end
+            Some(sym) => sym.borrow().name.clone(),
+        };
     }
 
     pub fn get_sym(&self) -> Rc<RefCell<Symbol>> {
         return match &self.sym {
             // Should never happen, indicates an error on my end
-            None => Rc::new(RefCell::new(Symbol::new(String::from("SYMBOL"), String::from("SYMBOL"), String::from("SYMBOL")))),
-            Some(sym) => Rc::clone(sym)
-        }
+            None => Rc::new(RefCell::new(Symbol::new(
+                String::from("SYMBOL"),
+                String::from("SYMBOL"),
+                String::from("SYMBOL"),
+            ))),
+            Some(sym) => Rc::clone(sym),
+        };
     }
 
     // ---------------------------------------------------------------------------------------
@@ -131,24 +130,24 @@ impl ASTNode {
     pub fn get_func_sig(&self) -> String {
         // Open func sig
         let mut func_sig = String::from("f(");
-    
+
         // Loop through parameters
         let mut param_num = 0;
         for param in &self.children[1].children {
             param_num += 1;
-    
+
             // Function parameters must be comma separated, so any parameter after the first must be prefixed by ", "
             if param_num > 1 {
                 func_sig.push_str(", ");
             }
-    
+
             // Add parameter/argument type to func sig
             func_sig.push_str(&&param.children[0].get_type());
         }
-    
+
         // Close func sig
         func_sig.push_str(")");
-    
+
         return func_sig;
     }
 
@@ -157,7 +156,6 @@ impl ASTNode {
         // If the current node is a return node, return true
         if self.node_type == "return" && self.get_type() != "void" {
             return true;
-
         } else {
             // Otherwise, if any of the children are or have a return node, return true
             for child in &self.children {
@@ -208,10 +206,12 @@ impl ASTNode {
         let sym = match &self.sym {
             None => String::from(""),
             Some(symbol_entry) => {
-                let mut sym_string = format!(", sym: {{name: {}, sig: {}, returns: {}",
-                        symbol_entry.borrow().name,
-                        symbol_entry.borrow().type_sig,
-                        symbol_entry.borrow().returns);
+                let mut sym_string = format!(
+                    ", sym: {{name: {}, sig: {}, returns: {}",
+                    symbol_entry.borrow().name,
+                    symbol_entry.borrow().type_sig,
+                    symbol_entry.borrow().returns
+                );
 
                 // Add label if it exists
                 let label_string = match &symbol_entry.borrow().label {
@@ -252,8 +252,8 @@ impl ASTNode {
 fn print_node(node: &ASTNode, num_tabs: i32) {
     // Add the correct indentation by adding num_tabs tabs
     for _i in 0..num_tabs {
-        print!("\t");                   // Print a tab without a newline at the end
-        io::stdout().flush().unwrap();  // 
+        print!("\t"); // Print a tab without a newline at the end
+        io::stdout().flush().unwrap(); //
     }
 
     // Print current node

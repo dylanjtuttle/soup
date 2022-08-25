@@ -2,7 +2,7 @@
 // This file contains the main logic involved in scanning the compilee for tokens, the first step of compiling
 // -----------------------------------------------------------------------------------------------------------
 
-use crate::scanner::scanner_data::{Token, TokenType, Char};
+use crate::scanner::scanner_data::{Char, Token, TokenType};
 use crate::scanner::scanner_utils::*;
 use crate::throw_error;
 
@@ -24,12 +24,16 @@ pub fn scanner(code_file: &str) -> Vec<Token> {
         // Try to get a token, and push it to the list if you get one
         match get_token(&chars, &mut i) {
             None => {}
-            Some(token) => {tokens.push(token)}
+            Some(token) => tokens.push(token),
         }
     }
 
     // Once we've gone through the whole file, add an EOF token at the end
-    tokens.push(Token {token_type: TokenType::EOF, lexeme: String::from("EOF"), line_num: chars[i - 1].line_num});
+    tokens.push(Token {
+        token_type: TokenType::EOF,
+        lexeme: String::from("EOF"),
+        line_num: chars[i - 1].line_num,
+    });
 
     // Return vector of tokens
     tokens
@@ -63,10 +67,10 @@ fn get_token(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
             // Possible identifier, but we have to check for reserved words first
             match get_reserved_words(chars, i) {
                 // If we find a reserved word, return the corresponding token
-                Some(reserved) => {return Some(reserved)}
+                Some(reserved) => return Some(reserved),
 
                 // Otherwise, we have an identifier
-                None => {return Some(get_identifier(chars, i))}
+                None => return Some(get_identifier(chars, i)),
             }
         }
         '0'..='9' => {
