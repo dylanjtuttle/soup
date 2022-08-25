@@ -106,7 +106,7 @@ pub fn pass2_pre(node: &mut ASTNode, scope_stack: &mut ScopeStack) {
         }
 
         // Check if a variable with this name has already been defined in this scope
-        if scope_stack.find_in_scope(&&node.children[1].get_attr()) {
+        if scope_stack.is_in_scope(&&node.children[1].get_attr()) {
             // A variable with this name has been defined already in this scope
             throw_error(&format!(
                 "Line {}: Variable illegally redefined within the same scope",

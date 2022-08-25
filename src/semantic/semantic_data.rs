@@ -60,7 +60,7 @@ impl ScopeStack {
     }
 
     // Return true if given symbol already exists in current scope, and false otherwise
-    pub fn find_in_scope(&mut self, search_name: &str) -> bool {
+    pub fn is_in_scope(&mut self, search_name: &str) -> bool {
         match self.peek() {
             // If the scope stack is empty, we obviously won't be able to find the symbol
             None => false,
