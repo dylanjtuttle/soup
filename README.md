@@ -26,7 +26,7 @@ $ cd soup
 - Create an environment variable `$SOUP_DIR` which holds the path to the `soup` directory you are currently in, and then add it to your path, by adding the following two lines near the end of your `~/.bashrc` file:
     ```bash
     export SOUP_DIR="[/absolute/path/to/soup/dir]"
-    export PATH=$PATH:$SOUP
+    export PATH=$PATH:$SOUP_DIR
     ```
     - Note that since `~/.bashrc` is executed once every time a terminal window is opened, these two environment variables only take effect once you exit your current terminal window and open a new one.
 
