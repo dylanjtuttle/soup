@@ -3,6 +3,10 @@ A simple programming language, built from scratch in Rust
 
 ![ci workflow](https://github.com/dylanjtuttle/soup/actions/workflows/rust-ci.yml/badge.svg)
 
+## Language Specification
+
+Check out the language specification in the [Wiki](https://github.com/dylanjtuttle/soup/wiki)!
+
 ## Installation
 
 Note first that soup is designed solely to work on Mac M1 processors.
