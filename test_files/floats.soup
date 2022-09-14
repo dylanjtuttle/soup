@@ -1,0 +1,6 @@
+func main() returns void {
+    float w = 1.5;
+    float x = 5.67e-12;
+    float y = 9E+1;
+    float z = 034978382.00000000016;
+}

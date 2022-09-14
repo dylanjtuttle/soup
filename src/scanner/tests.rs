@@ -407,8 +407,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_int_lits() {
-        let int_lit = vec![
+    fn test_get_num_lits_int() {
+        let num_lit = vec![
             Char {
                 char_val: '0',
                 line_num: 1,
@@ -442,9 +442,177 @@ mod tests {
         };
 
         let mut index = 0;
-        assert_eq!(expected_token, get_int_lits(&int_lit, &mut index));
-        // Ensure we moved the index far enough (should now point at the final ' ' char)
+        assert_eq!(expected_token, get_num_lits(&num_lit, &mut index));
+        // Ensure we moved the index far enough (should now point at the final ';' char)
         assert_eq!(5, index);
+    }
+
+    #[test]
+    fn test_get_num_lits_float_1() {
+        let int_lit = vec![
+            Char {
+                char_val: '1',
+                line_num: 1,
+            },
+            Char {
+                char_val: '.',
+                line_num: 1,
+            },
+            Char {
+                char_val: '5',
+                line_num: 1,
+            },
+            Char {
+                char_val: ';',
+                line_num: 1,
+            }
+        ];
+
+        let expected_token = Token {
+            token_type: TokenType::FLOATLIT,
+            lexeme: String::from("1.5"),
+            line_num: 1,
+        };
+
+        let mut index = 0;
+        assert_eq!(expected_token, get_num_lits(&int_lit, &mut index));
+        // Ensure we moved the index far enough (should now point at the final ';' char)
+        assert_eq!(3, index);
+    }
+
+    #[test]
+    fn test_get_num_lits_float_2() {
+        let int_lit = vec![
+            Char {
+                char_val: '2',
+                line_num: 1,
+            },
+            Char {
+                char_val: 'e',
+                line_num: 1,
+            },
+            Char {
+                char_val: '1',
+                line_num: 1,
+            },
+            Char {
+                char_val: ';',
+                line_num: 1,
+            }
+        ];
+
+        let expected_token = Token {
+            token_type: TokenType::FLOATLIT,
+            lexeme: String::from("2e1"),
+            line_num: 1,
+        };
+
+        let mut index = 0;
+        assert_eq!(expected_token, get_num_lits(&int_lit, &mut index));
+        // Ensure we moved the index far enough (should now point at the final ';' char)
+        assert_eq!(3, index);
+    }
+
+    #[test]
+    fn test_get_num_lits_float_3() {
+        let int_lit = vec![
+            Char {
+                char_val: '3',
+                line_num: 1,
+            },
+            Char {
+                char_val: '.',
+                line_num: 1,
+            },
+            Char {
+                char_val: '1',
+                line_num: 1,
+            },
+            Char {
+                char_val: 'E',
+                line_num: 1,
+            },
+            Char {
+                char_val: '+',
+                line_num: 1,
+            },
+            Char {
+                char_val: '1',
+                line_num: 1,
+            },
+            Char {
+                char_val: '6',
+                line_num: 1,
+            },
+            Char {
+                char_val: ';',
+                line_num: 1,
+            }
+        ];
+
+        let expected_token = Token {
+            token_type: TokenType::FLOATLIT,
+            lexeme: String::from("3.1E+16"),
+            line_num: 1,
+        };
+
+        let mut index = 0;
+        assert_eq!(expected_token, get_num_lits(&int_lit, &mut index));
+        // Ensure we moved the index far enough (should now point at the final ';' char)
+        assert_eq!(7, index);
+    }
+
+    #[test]
+    fn test_get_num_lits_float_4() {
+        let int_lit = vec![
+            Char {
+                char_val: '4',
+                line_num: 1,
+            },
+            Char {
+                char_val: '0',
+                line_num: 1,
+            },
+            Char {
+                char_val: '.',
+                line_num: 1,
+            },
+            Char {
+                char_val: '0',
+                line_num: 1,
+            },
+            Char {
+                char_val: 'e',
+                line_num: 1,
+            },
+            Char {
+                char_val: '-',
+                line_num: 1,
+            },
+            Char {
+                char_val: '0',
+                line_num: 1,
+            },
+            Char {
+                char_val: '6',
+                line_num: 1,
+            },
+            Char {
+                char_val: ';',
+                line_num: 1,
+            }
+        ];
+
+        let expected_token = Token {
+            token_type: TokenType::FLOATLIT,
+            lexeme: String::from("40.0e-06"),
+            line_num: 1,
+        };
+
+        let mut index = 0;
+        assert_eq!(expected_token, get_num_lits(&int_lit, &mut index));
+        // Ensure we moved the index far enough (should now point at the final ';' char)
+        assert_eq!(8, index);
     }
 
     #[test]

@@ -207,6 +207,7 @@ pub fn get_reserved_words(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
         TokenType::ELSE,
         TokenType::FUNC,
         TokenType::MAIN,
+        TokenType::FLOAT,
         TokenType::FALSE,
         TokenType::WHILE,
         TokenType::BREAK,
@@ -215,7 +216,7 @@ pub fn get_reserved_words(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
     ];
 
     let reserved_lexemes = vec![
-        "if", "int", "true", "bool", "void", "else", "func", "main", "false", "while", "break",
+        "if", "int", "true", "bool", "void", "else", "func", "main", "float", "false", "while", "break",
         "return", "returns",
     ];
 
@@ -326,37 +327,86 @@ pub fn get_identifier(chars: &Vec<Char>, i: &mut usize) -> Token {
 }
 
 // --------------------------------------------------------------------------------------
-// SCANNING - INTEGER LITERALS
+// SCANNING - NUMBER LITERALS
 // --------------------------------------------------------------------------------------
 
-pub fn get_int_lits(chars: &Vec<Char>, i: &mut usize) -> Token {
-    // We have to check for multiple digit literals
-    let mut int_lit_char = chars[*i].char_val;
-    let mut int_lit_vec = Vec::new();
+pub fn loop_through_digits(chars: &Vec<Char>, i: &mut usize, num_lit_vec: &mut Vec<char>) -> char {
+    let mut num_lit_char = chars[*i].char_val;
 
     // Loop until we've found a non-digit character
-    while is_digit(int_lit_char) {
+    while is_digit(num_lit_char) {
         // Add digit character to the vector
-        int_lit_vec.push(int_lit_char);
+        num_lit_vec.push(num_lit_char);
 
         // Move to the next character and jump to the loop test again
         *i += 1;
-        int_lit_char = chars[*i].char_val;
+        num_lit_char = chars[*i].char_val;
+    }
+
+    return num_lit_char;
+}
+
+pub fn get_num_lits(chars: &Vec<Char>, i: &mut usize) -> Token {
+    // We have to check for multiple digit literals
+    let mut num_lit_vec = Vec::new();
+
+    // Loop until we've found a non-digit character
+    let mut num_lit_char = loop_through_digits(chars, i, &mut num_lit_vec);
+
+    let mut token_type = TokenType::INTLIT;
+
+    if num_lit_char == '.' {
+        // The number is a float
+        token_type = TokenType::FLOATLIT;
+        num_lit_vec.push(num_lit_char);
+
+        // Move to the next character
+        *i += 1;
+
+        // Loop until we've found a non-digit character
+        num_lit_char = loop_through_digits(chars, i, &mut num_lit_vec);
+    }
+    
+    if num_lit_char == 'e' || num_lit_char == 'E' {
+        // We have a number in scientific notation
+        token_type = TokenType::FLOATLIT;
+        num_lit_vec.push(num_lit_char);
+
+        // Move to the next character
+        *i += 1;
+        num_lit_char = chars[*i].char_val;
+
+        if num_lit_char == '+' || num_lit_char == '-' {
+            num_lit_vec.push(num_lit_char);
+
+            // Move to the next character
+            *i += 1;
+
+            // Loop until we've found a non-digit character
+            _ = loop_through_digits(chars, i, &mut num_lit_vec);
+
+        } else if is_digit(num_lit_char) {
+            // Loop until we've found a non-digit character
+            _ = loop_through_digits(chars, i, &mut num_lit_vec);
+
+        } else {
+            throw_error(&format!("Line {}: Invalid scientific notation syntax", chars[*i].line_num));
+        }
     }
 
     // We incremented one character too far because we had to find a non-digit character to exit the loop
     *i -= 1;
 
     // Now that we've found the end of the integer literal, turn the slice into a string
-    let int_lit_lexeme: String = int_lit_vec[0..int_lit_vec.len()].iter().collect();
+    let num_lit_lexeme: String = num_lit_vec[0..num_lit_vec.len()].iter().collect();
 
     // Prepare to move along to the next char
     *i += 1;
 
     // Return an 'integer literal' token, with the newly created lexeme
     return Token {
-        token_type: TokenType::INTLIT,
-        lexeme: int_lit_lexeme,
+        token_type: token_type,
+        lexeme: num_lit_lexeme,
         line_num: chars[*i].line_num,
     };
 }

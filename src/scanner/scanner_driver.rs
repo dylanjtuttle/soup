@@ -74,8 +74,8 @@ fn get_token(chars: &Vec<Char>, i: &mut usize) -> Option<Token> {
             }
         }
         '0'..='9' => {
-            // We have an integer literal
-            return Some(get_int_lits(chars, i));
+            // We have a number literal
+            return Some(get_num_lits(chars, i));
         }
         '"' => {
             // We have a string literal
