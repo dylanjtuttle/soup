@@ -45,6 +45,9 @@ pub fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         TokenType::INTLIT => {
             literal_node.node_type = String::from("number");
         }
+        TokenType::FLOATLIT => {
+            literal_node.node_type = String::from("floatlit");
+        }
         TokenType::STRLIT => {
             literal_node.node_type = String::from("string");
         }
@@ -69,6 +72,7 @@ pub fn literal_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
 // type    	: BOOLEAN
 // 	        | INT
+// 	        | FLOAT
 // 	        ;
 pub fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // Get current token
@@ -86,12 +90,15 @@ pub fn type_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
         TokenType::INT => {
             type_node.node_type = String::from("int");
         }
+        TokenType::FLOAT => {
+            type_node.node_type = String::from("float");
+        }
         TokenType::BOOL => {
             type_node.node_type = String::from("bool");
         }
         _ => {
             throw_error(&format!(
-                "Syntax Error on line {}: type must be one of \"int\", \"bool\"",
+                "Syntax Error on line {}: type must be one of \"int\", \"float\", \"bool\"",
                 tokens[*current + 1].line_num
             ));
         }
@@ -143,9 +150,7 @@ pub fn globaldeclaration_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
             throw_error(&format!("Syntax Error on line {}: \"func\" keyword must be followed by \"main\" or identifier",
                         tokens[*current + 1].line_num));
         }
-    } else if current_token.token_type == TokenType::INT
-        || current_token.token_type == TokenType::BOOL
-    {
+    } else if current_token.is_type_token() {
         // We have a variable declaration
         let mut glob_var_decl = variabledeclaration_(tokens, current);
 
@@ -587,7 +592,7 @@ pub fn blockstatement_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
 
     // A block statement can either be a variable declaration or a statement
     // If it is a variable declaration, the first token we will find is a type (int or bool)
-    if current_token.token_type == TokenType::INT || current_token.token_type == TokenType::BOOL {
+    if current_token.is_type_token() {
         return variabledeclaration_(tokens, current);
     } else {
         // Otherwise, it is a statement, and if the first token doesn't match any of those options,
@@ -933,6 +938,7 @@ pub fn postfixexpression_(tokens: &Vec<Token>, current: &mut usize) -> ASTNode {
     // an expression surrounded by parentheses (first token is OPENPAR),
     // or a function invocation (second token is OPENPAR)
     if current_token.token_type == TokenType::INTLIT
+        || current_token.token_type == TokenType::FLOATLIT
         || current_token.token_type == TokenType::STRLIT
         || current_token.token_type == TokenType::TRUE
         || current_token.token_type == TokenType::FALSE

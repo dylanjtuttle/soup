@@ -17,6 +17,14 @@ pub struct Token {
     pub line_num: i32,
 }
 
+impl Token {
+    pub fn is_type_token(&self) -> bool {
+        return self.token_type == TokenType::INT
+            || self.token_type == TokenType::FLOAT
+            || self.token_type == TokenType::BOOL;
+    }
+}
+
 // An enumeration to define Token types for easy comparison
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {

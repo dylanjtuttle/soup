@@ -4,6 +4,49 @@ mod tests {
     use crate::scanner::scanner_data::{Token, TokenType};
 
     #[test]
+    fn test_var_decl_with_assignment() {
+        // float x = 1.5;
+        let tokens = vec![
+            Token {
+                token_type: TokenType::FLOAT,
+                lexeme: String::from("float"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::ID,
+                lexeme: String::from("x"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::ASSIGN,
+                lexeme: String::from("="),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::FLOATLIT,
+                lexeme: String::from("1.5"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::SEMICOLON,
+                lexeme: String::from(";"),
+                line_num: 1,
+            },
+        ];
+
+        let mut var_decl = ASTNode::new("varDecl", None, Some(1));
+        let var_type = ASTNode::new("float", Some(String::from("float")), Some(1));
+        let var_id = ASTNode::new("id", Some(String::from("x")), Some(1));
+        let var_val = ASTNode::new("floatlit", Some(String::from("1.5")), Some(1));
+
+        var_decl.add_child(var_type);
+        var_decl.add_child(var_id);
+        var_decl.add_child(var_val);
+
+        assert_eq!(var_decl, variabledeclaration_(&tokens, &mut 0));
+    }
+
+    #[test]
     fn test_function_header() {
         // func test_func() returns void {;}
         let tokens = vec![
