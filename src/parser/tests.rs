@@ -209,4 +209,59 @@ mod tests {
         assert!(root.has_nonempty_return());
         assert!(!ASTNode::new("funcDecl", None, None).has_nonempty_return());
     }
+
+    #[test]
+    fn test_literal() {
+        let tokens = vec![
+            Token {
+                token_type: TokenType::INTLIT,
+                lexeme: String::from("0"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::STRLIT,
+                lexeme: String::from("hello world"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::TRUE,
+                lexeme: String::from("true"),
+                line_num: 1,
+            },
+            Token {
+                token_type: TokenType::FALSE,
+                lexeme: String::from("false"),
+                line_num: 1,
+            }
+        ];
+
+        let intlit_node = ASTNode::new(
+            "number",
+            Some(String::from("0")),
+            Some(1),
+        );
+
+        let strlit_node = ASTNode::new(
+            "string",
+            Some(String::from("hello world")),
+            Some(1),
+        );
+
+        let true_node = ASTNode::new(
+            "true",
+            Some(String::from("true")),
+            Some(1),
+        );
+
+        let false_node = ASTNode::new(
+            "false",
+            Some(String::from("false")),
+            Some(1),
+        );
+
+        assert_eq!(intlit_node, literal_(&tokens, &mut 0));
+        assert_eq!(strlit_node, literal_(&tokens, &mut 1));
+        assert_eq!(true_node, literal_(&tokens, &mut 2));
+        assert_eq!(false_node, literal_(&tokens, &mut 3));
+    }
 }
